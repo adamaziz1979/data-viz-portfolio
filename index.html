@@ -1,0 +1,1426 @@
+<!doctype html>
+<html lang="en-AU" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Adam Aziz's Data Viz Portfolio: standard and experimental charts built to his data visualisation standards, each showing its rule at work. Sample data only.">
+<title>Data Viz Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+/* Default tokens: Monochrome blue, dark. JS swaps them when the palette or mode changes. */
+:root{
+  --bg:#0c121a; --surface:#141c27; --fg:#e8edf3; --muted:#94a1b2; --line:#243042;
+  --accent:#4f9dff; --accent-soft:#16263d;
+  --c1:#bcd9ff; --c2:#8ec0ff; --c3:#4f9dff; --c4:#2f7de0; --c5:#225fb0; --c6:#6aa8f0; --grey:#8b96a5;
+  --pos:#4f9dff; --neg:#e0956a;
+  --s-ok:#5fd38d; --s-warn:#f2a65a; --s-bad:#f87171;
+  --font-body:"Lexend",Arial,sans-serif; --font-mono:"IBM Plex Mono",Consolas,monospace;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-weight:300;font-size:15px;line-height:1.55}
+.wrap{max-width:1520px;margin:0 auto;padding-block:40px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:36px}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:600;letter-spacing:-0.01em}
+h1{font-size:clamp(1.7rem,4vw,2.3rem)}
+h2{font-size:1.25rem}
+h3{font-size:1rem}
+.eyebrow{font-family:var(--font-mono);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0}
+header{display:grid;gap:10px}
+header p{margin:0;color:var(--muted);max-width:70ch;font-size:1.02rem}
+.num{font-variant-numeric:tabular-nums}
+
+/* Controls: one row above the charts */
+.controls{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{font:inherit;font-size:.86rem;font-weight:400;color:var(--muted);background:none;border:0;min-height:44px;padding:0 14px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{color:var(--fg);background:var(--accent-soft);font-weight:500}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ctl-l{font-family:var(--font-mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:8px}
+
+/* KPI tiles */
+/* KPI tiles: the standard tile (Dashboard Patterns guide, section 3), same as the ClearCompare Stage 4 dashboard.
+   Name; big number with sparkline beside it; Provisional tag; target, gap, needs, trend lines; status chip; note.
+   Every tile has the same 9 rows (subgrid), so each part lines up across tiles, with an empty row where a part is missing. */
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:auto;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stat{background:var(--surface);padding:16px 16px 12px;display:grid;grid-row:span 9;grid-template-rows:subgrid;row-gap:4px;align-content:start;min-width:0}
+.stat>*{align-self:start}
+.stat[data-tip]{cursor:help}
+.stat:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.stat .nm{font-size:.84rem;color:var(--muted);line-height:1.3}
+.stat .tile-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:end;align-self:end}
+.stat .act{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:40px}
+.stat .act b{font-size:clamp(1.9rem,2.6vw,2.4rem);font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.tag{display:inline-block;font-family:var(--font-mono);font-size:.68rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:6px;border:1px solid var(--line);color:var(--fg)}
+.tag.prov{border-color:var(--s-warn);color:var(--s-warn)}
+.stat .tag.prov{width:max-content}
+.stat .ln{font-family:var(--font-mono);font-size:.7rem;color:var(--muted);line-height:1.45}
+.stat .ln b{color:var(--fg);font-weight:500}
+.stat .ln.trend[data-s="bad"]{color:var(--s-bad)}
+.stat .ln.trend[data-s="warn"]{color:var(--s-warn)}
+.stat .note{font-size:.74rem;color:var(--muted);line-height:1.35}
+.stat .st{margin-top:2px}
+.spk{position:relative;min-width:60px}
+.spark{display:block;width:100%;height:40px}
+.spark path{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.spark path.dash{stroke-dasharray:3 3}
+.spark .area{fill:var(--accent);fill-opacity:.1;stroke:none}
+.spark .tgt-s{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.spk .end{position:absolute;right:-4px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+@media (max-width:1100px){.stats{grid-template-columns:repeat(6,minmax(0,1fr))}.stat{grid-column:span 2}.stat:nth-child(-n+2){grid-column:span 3}}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat,.stat:nth-child(-n+2){grid-column:span 1}.stat:first-child{grid-column:1/-1}}
+
+/* Chart cards: side by side cards share a top edge and height; legend and caption sit below the chart */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:stretch}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 18px 14px;display:grid;grid-template-rows:auto 1fr auto auto auto;gap:12px;min-width:0}
+.card-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px}
+.card-head .hl{font-family:var(--font-mono);font-size:.78rem;color:var(--muted)}
+.card-head .hl b{color:var(--fg);font-weight:500}
+.chart{min-width:0;align-self:center}
+.chart.replay{cursor:pointer}
+.chart svg{display:block;overflow:visible}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.76rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;background:var(--c);display:inline-block}
+.legend i.ln{height:2px;width:14px;border-radius:1px}
+.legend .ramp{display:inline-flex;gap:2px}
+.legend .ramp i{width:14px}
+.cap{margin:0;color:var(--muted);font-size:.74rem;line-height:1.45}
+.cap b{font-weight:500;color:var(--muted)}
+details.data>summary{cursor:pointer;font-size:.78rem;color:var(--accent);width:max-content;min-height:44px;display:flex;align-items:center;list-style:none}
+details.data>summary::-webkit-details-marker{display:none}
+details.data>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+details.data table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.78rem;margin-top:8px}
+details.data th,details.data td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+details.data th{font-family:var(--font-mono);font-weight:500;font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+details.data td{font-variant-numeric:tabular-nums}
+
+/* SVG chart parts */
+.grid-l{stroke:var(--line);stroke-width:1}
+.ax{fill:var(--muted);font-family:var(--font-mono);font-size:11px}
+.lab{fill:var(--fg);font-family:var(--font-body);font-size:12px}
+.lab .b{font-weight:600}
+.dot{stroke:var(--surface);stroke-width:2}
+.hit{fill:transparent;cursor:default}
+.cross{stroke:var(--muted);stroke-width:1}
+
+/* Bars (category build time) */
+.bars{display:grid;gap:4px}
+details.bar-d{border-radius:8px}
+details.bar-d[open]{background:var(--bg);box-shadow:0 0 0 1px var(--line)}
+summary.bar{list-style:none;cursor:pointer;padding:8px 10px;border-radius:8px;display:grid;grid-template-columns:150px minmax(0,1fr) 60px;gap:12px;align-items:center;font-size:.9rem;min-height:44px}
+summary.bar::-webkit-details-marker{display:none}
+summary.bar:hover{background:var(--bg)}
+summary.bar:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lbl{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.chev{width:7px;height:7px;flex:none;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
+details[open] .chev{transform:rotate(45deg)}
+.cnt{font-family:var(--font-mono);font-size:.72rem;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:0 6px;line-height:1.5}
+.track{height:12px;border-radius:0 4px 4px 0;position:relative}
+.track::before{content:"";position:absolute;left:0;top:50%;width:100%;height:1px;background:var(--line)}
+.fill{position:relative;display:block;height:100%;background:var(--accent);border-radius:0 4px 4px 0;transform-origin:left center}
+.v{text-align:right;font-family:var(--font-mono);font-size:.82rem;color:var(--fg)}
+ul.builds{list-style:none;margin:0;padding:2px 10px 10px 25px;display:grid;gap:6px;font-size:.82rem}
+ul.builds li{display:flex;justify-content:space-between;gap:10px}
+ul.builds .bt{font-family:var(--font-mono);font-size:.76rem;color:var(--muted)}
+@media (max-width:420px){summary.bar{grid-template-columns:118px minmax(0,1fr) 52px;gap:8px}}
+
+/* KPI vs target (bullet) */
+.bul{display:grid;gap:14px}
+.bul-r{display:grid;grid-template-columns:150px minmax(0,1fr) 84px 108px;gap:6px 12px;align-items:center}
+.bul-n{font-size:.88rem;line-height:1.3}
+.bul-n small{display:block;color:var(--muted);font-size:.72rem}
+.bul-t{position:relative;height:22px;cursor:default}
+.bul-t::before{content:"";position:absolute;inset:4px 0;background:var(--line);opacity:.55;border-radius:2px}
+.bul-a{position:absolute;left:0;top:6px;height:10px;background:var(--accent);border-radius:0 4px 4px 0;transform-origin:left center}
+.bul-k{position:absolute;top:0;width:2px;height:22px;background:var(--fg);margin-left:-1px}
+.bul-v{font-family:var(--font-mono);font-size:.8rem;text-align:right}
+.bul-v small{display:block;color:var(--muted);font-size:.68rem}
+.st{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;font-weight:500;padding:4px 8px;border-radius:6px;border:1px solid var(--line);border-left:4px solid var(--sc);color:var(--fg);white-space:nowrap;width:max-content}
+.st .ic{color:var(--sc);font-weight:600}
+.st[data-s="ok"]{--sc:var(--s-ok)} .st[data-s="warn"]{--sc:var(--s-warn)} .st[data-s="bad"]{--sc:var(--s-bad)}
+@media (max-width:560px){.bul-r{grid-template-columns:minmax(0,1fr) auto}.bul-t{grid-column:1/-1;grid-row:2}.bul-v{grid-row:3;text-align:left}.bul-r .st{grid-row:3;justify-self:end}}
+
+/* Diverging */
+.div{display:grid;gap:10px}
+.div-r{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:center;font-size:.86rem}
+.div-t{position:relative;height:26px;cursor:default}
+.div-t::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted)}
+.div-b{position:absolute;top:7px;height:12px}
+.div-b.p{left:50%;background:var(--pos);border-radius:0 4px 4px 0;transform-origin:left center}
+.div-b.n{right:50%;background:var(--neg);border-radius:4px 0 0 4px;transform-origin:right center}
+.div-l{position:absolute;top:3px;font-family:var(--font-mono);font-size:.74rem;color:var(--fg);white-space:nowrap}
+.div-ax{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px}
+.div-ax div{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.68rem;color:var(--muted)}
+@media (max-width:420px){.div-r,.div-ax{grid-template-columns:96px minmax(0,1fr);gap:8px}}
+
+/* Progress rings */
+.rings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ring{display:grid;justify-items:center;gap:8px;text-align:center;cursor:default;border-radius:8px;padding:4px 0}
+.ring:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ring-n{fill:var(--fg);font-family:var(--font-body);font-weight:600;font-size:24px;font-variant-numeric:tabular-nums}
+.ring-l{font-size:.86rem;line-height:1.3}
+.ring-l small{display:block;color:var(--muted);font-size:.72rem}
+@keyframes ring{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+.play .ringarc{animation:ring 1.2s ease-out both;animation-delay:var(--d,0s)}
+@media (max-width:420px){.rings{grid-template-columns:minmax(0,1fr)}}
+/* Before and after rings (nested) */
+.nest{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 14px}
+.nst svg{width:100%;max-width:110px;height:auto}
+.nst{display:grid;justify-items:center;gap:4px;text-align:center;cursor:default;border-radius:8px;padding:4px 0}
+.nst:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.nst-n{font-family:var(--font-body);font-weight:600;font-size:24px;line-height:1.1;color:var(--accent);font-variant-numeric:tabular-nums}
+.nst-l{font-size:.82rem;line-height:1.3}
+.nst-l small{display:block;color:var(--muted);font-size:.72rem}
+@media (max-width:560px){.nest{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Small multiples */
+.multi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mini-c{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 10px 6px;display:grid;gap:4px;min-width:0}
+.mini-h{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;min-width:0}
+.mini-h span{overflow-wrap:anywhere}
+.mini-h b{font-weight:600}
+.mini-s{min-width:0}
+@media (max-width:520px){.multi{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Bubble, sunburst, sankey */
+.card.wide{grid-column:1/-1}
+.sun{display:flex;justify-content:center}
+.sun svg{max-width:100%;height:auto}
+.sk{display:flex;justify-content:center}
+.sk-l{fill-opacity:.28;transition:fill-opacity .15s}
+.sk-l:hover{fill-opacity:.55}
+@media (prefers-reduced-motion:reduce){.sk-l{transition:none}}
+
+/* Palette check and rules */
+.check{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.82rem}
+.check th,.check td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.check th{font-family:var(--font-mono);font-weight:500;font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.check col.a{width:24%} .check col.b{width:18%}
+.swatches{display:flex;flex-wrap:wrap;gap:6px}
+.swatches span{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:.7rem;color:var(--muted)}
+.swatches i{width:18px;height:18px;border-radius:4px;background:var(--c)}
+.rules{margin:0;padding-left:18px;display:grid;gap:6px;columns:2;column-gap:40px}
+.rules li{break-inside:avoid;margin-bottom:6px}
+@media (max-width:860px){.rules{columns:1}}
+section{display:grid;gap:14px}
+
+/* Tooltip */
+#tip{position:fixed;z-index:50;pointer-events:none;max-width:240px;padding:8px 10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.28);font-size:.78rem;line-height:1.45;opacity:0;transition:opacity .1s}
+#tip.on{opacity:1}
+#tip .tr{display:flex;justify-content:space-between;gap:12px;font-family:var(--font-mono);font-size:.72rem;color:var(--muted)}
+#tip .tr b{color:var(--fg);font-weight:500}
+#tip .tr i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:var(--c)}
+
+/* Motion: play on first view, click to replay */
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.play .draw{stroke-dasharray:1;animation:draw 1.8s ease-out both}
+.play .fade{animation:fadein .4s ease-out both;animation-delay:var(--d,0s)}
+.play .fill,.play .bul-a,.play .div-b{animation:grow .9s ease-out both;animation-delay:var(--d,0s)}
+.play .col{transform-box:fill-box;transform-origin:bottom;animation:growy .7s ease-out both;animation-delay:var(--d,0s)}
+@media (prefers-reduced-motion:reduce){.play *{animation:none!important}.chev,#tip{transition:none}}
+/* v1.2 charts: driver tree, bullet with bands, hexagonal swarm */
+.dt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 30px;align-items:center}
+.dt-n{position:relative;border:1px solid var(--line);border-left:4px solid var(--sc,var(--line));border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.35;cursor:default;opacity:.62}
+.dt-n.hl{opacity:1;border-color:var(--accent);border-left-color:var(--sc)}
+.dt-n.top{opacity:1}
+.dt-n b{display:block;font-family:var(--font-body);font-weight:600;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.dt-n small{display:block;font-family:var(--font-mono);font-size:.66rem;color:var(--muted)}
+.dt-n .nm{font-family:var(--font-mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.dt-n[data-s="ok"]{--sc:var(--s-ok)} .dt-n[data-s="warn"]{--sc:var(--s-warn)} .dt-n[data-s="bad"]{--sc:var(--s-bad)}
+.dt-n.l1::before,.dt-n.l2::before{content:"";position:absolute;left:-31px;top:50%;width:26px;border-top:1px solid var(--muted)}
+@media (max-width:640px){.dt{grid-template-columns:1fr;gap:8px}.dt>*{grid-row:auto!important;grid-column:auto!important}.dt-n.l1{margin-left:16px}.dt-n.l2{margin-left:32px}.dt-n.l1::before,.dt-n.l2::before{left:-13px;width:10px}}
+.bnd{display:grid;gap:14px}
+.bnd-r{display:grid;grid-template-columns:150px minmax(0,1fr) 84px;gap:6px 12px;align-items:center}
+.bnd-t{position:relative;height:24px;cursor:default;border-radius:2px;overflow:hidden}
+.bnd-t span.z{position:absolute;top:0;bottom:0}
+.bnd-a{position:absolute;left:0;top:8px;height:8px;background:var(--fg);border-radius:0 4px 4px 0;transform-origin:left center}
+.bnd-k{position:absolute;top:2px;width:3px;height:20px;background:var(--accent);margin-left:-1px}
+.play .bnd-a{animation:grow .9s ease-out both;animation-delay:var(--d,0s)}
+@media (max-width:560px){.bnd-r{grid-template-columns:minmax(0,1fr) auto}.bnd-t{grid-column:1/-1;grid-row:2}}
+.hx{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
+.hx figure{margin:0;flex:1 1 200px;max-width:280px;text-align:center}
+.hx svg{width:100%;height:auto}
+.hx figcaption{font-family:var(--font-mono);font-size:.74rem;color:var(--muted)}
+.hx figcaption b{color:var(--fg);font-weight:500;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="eyebrow">Adam Aziz · data viz standards · updated 25 Nov 2026</p>
+  <h1>Data Viz Portfolio</h1>
+  <p>Twenty-five standard charts and five experimental ones in the AI Build Log style, with patterns from Pinterest boards, each showing the draft rules at work. Sample data only. Switch palette and mode to compare.</p>
+</header>
+
+<div class="controls" role="group" aria-label="Display options">
+  <div><span class="ctl-l">Palette</span><span class="seg" id="pal">
+    <button type="button" data-p="blue" aria-pressed="true">Monochrome blue</button><button type="button" data-p="amber" aria-pressed="false">Graphite and amber</button><button type="button" data-p="lime" aria-pressed="false">Slate and lime</button><button type="button" data-p="teal" aria-pressed="false">Charcoal and teal</button>
+  </span></div>
+  <div><span class="ctl-l">Mode</span><span class="seg" id="mode">
+    <button type="button" data-m="dark" aria-pressed="true">Dark</button><button type="button" data-m="light" aria-pressed="false">Light</button>
+  </span></div>
+</div>
+
+<main class="wrap" style="padding:0;gap:36px">
+<section aria-labelledby="h-tiles">
+  <h2 id="h-tiles">Headline numbers</h2>
+  <div class="stats" id="tiles"></div>
+  <p class="cap"><b>Rule shown:</b> the standard KPI tile, as on the ClearCompare dashboard. Name on top; the number with its sparkline beside it (never behind text), a dashed target line and a dot on the latest value; a dashed tail and Provisional tag when recent data is still open; then target, gap, what's needed and the trend (in the status colour when behind); status chip; optional note. Every part lines up across tiles. Five tiles at most. Hover a tile for why it matters.</p>
+</section>
+
+<section aria-labelledby="h-charts">
+  <h2 id="h-charts">Charts</h2>
+  <div class="grid" id="cards"></div>
+</section>
+
+<section aria-labelledby="h-exp">
+  <h2 id="h-exp">Experimental charts</h2>
+  <p class="cap">For covers, summaries and portfolio pieces, inspired by Pinterest picks. Each card says which rule it bends. The standard charts above stay the default for reading numbers.</p>
+  <div class="grid" id="xcards"></div>
+</section>
+
+<section aria-labelledby="h-check">
+  <h2 id="h-check">Palette check</h2>
+  <div class="swatches" id="sw"></div>
+  <table class="check"><colgroup><col class="a"><col class="b"><col></colgroup>
+    <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Detail</th></tr></thead>
+    <tbody id="chk"><tr><td colspan="3">Running the check...</td></tr></tbody></table>
+  <p class="cap" id="chk-note"></p>
+</section>
+
+<section aria-labelledby="h-rules">
+  <h2 id="h-rules">Rules these samples follow (draft)</h2>
+  <ul class="rules">
+    <li>The data's job picks the form. A single headline is a tile, not a chart.</li>
+    <li>One measure, one colour. Colour only when it means something: an entity, a state or a direction.</li>
+    <li>Colour follows the entity. Claude Code is always blue, ChatGPT always grey, on every chart.</li>
+    <li>Running totals: label each period with what it added, so the labels add up to the total.</li>
+    <li>Bars 24px thick at most, 4px rounded end, square at the baseline. Lines 2px. Dots 9px with a ring.</li>
+    <li>Gridlines are hairline and solid. Axes are muted. Never two y-axes on one chart.</li>
+    <li>Legend below the chart for two or more series. Direct labels on line ends, never on every point.</li>
+    <li>Text stays in text colours, never in the series colour.</li>
+    <li>Status is always icon, word and colour together: ✓ On track, ! Behind.</li>
+    <li>Every chart has hover detail and a "See data" table.</li>
+    <li>Side by side charts share a top edge and height. Captions are small and muted.</li>
+    <li>Charts animate on first view. Click the chart to replay. No play buttons. Nothing moves with reduced motion on.</li>
+    <li>Dark by default. Light mode is its own checked palette, not an automatic flip.</li>
+    <li>No sideways scrolling from 375px to 1600px. Every control at least 44px tall.</li>
+    <li>Every palette passes the colourblind check before it is used.</li>
+    <li>Progress rings only for one percentage against a whole or a target, with the number in the middle in text colour.</li>
+    <li>Small multiples share one scale, so the minis can be compared at a glance.</li>
+    <li>Bubbles are sized by area, in one colour, with only the few that matter labelled.</li>
+    <li>Sunburst only for a two-level part of a whole. To compare sizes, use bars.</li>
+    <li>Experimental charts are for covers and summaries. Each says which rule it bends and keeps a "See data" table.</li>
+    <li>Sankey bands take the colour of the one stage that matters most (here the category), and their width is the count.</li>
+    <li>A soft fill (10% of the line colour) goes under single-series lines only, never under two or more.</li>
+  </ul>
+</section>
+</main>
+</div>
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- Palettes (saved 19 Oct 2026). Light values for amber and lime are drafts. ---------- */
+const STATUS={dark:{ok:'#5fd38d',warn:'#f2a65a',bad:'#f87171'},light:{ok:'#15803d',warn:'#b45309',bad:'#b91c1c'}};
+const PAL={
+ blue:{name:'Monochrome blue',
+  dark:{bg:'#0c121a',surface:'#141c27',fg:'#e8edf3',muted:'#94a1b2',line:'#243042',accent:'#4f9dff',soft:'#16263d',cats:['#bcd9ff','#8ec0ff','#4f9dff','#2f7de0','#225fb0','#6aa8f0'],grey:'#8b96a5',pos:'#4f9dff',neg:'#e0956a'},
+  light:{bg:'#f5f8fc',surface:'#ffffff',fg:'#121a24',muted:'#556273',line:'#dbe3ee',accent:'#1f64c8',soft:'#e3edfb',cats:['#1f64c8','#3b82e6','#0f3f80','#6aa3ec','#2a5ea8','#93bdf2'],grey:'#6b7685',pos:'#1f64c8',neg:'#c2643a'}},
+ amber:{name:'Graphite and amber',
+  dark:{bg:'#121212',surface:'#1c1c1c',fg:'#ececec',muted:'#a0a0a0',line:'#2e2e2e',accent:'#f5a524',soft:'#2e2414',cats:['#f5a524','#6cb2ff','#58c4a3','#d97757','#b49cf3','#c9c9c9'],grey:'#8f8f8f',pos:'#6cb2ff',neg:'#f5a524'},
+  light:{bg:'#f6f5f2',surface:'#ffffff',fg:'#161616',muted:'#5c5c5c',line:'#e2e0db',accent:'#b86e00',soft:'#f7ecd9',cats:['#b86e00','#1f6fc4','#1d8a6b','#b5532f','#7a5bd0','#6f6f6f'],grey:'#7a7a7a',pos:'#1f6fc4',neg:'#b86e00'}},
+ lime:{name:'Slate and lime',
+  dark:{bg:'#0f1418',surface:'#172026',fg:'#e9eef0',muted:'#94a3ab',line:'#25323a',accent:'#b5e853',soft:'#1f2a1a',cats:['#b5e853','#5aa9e6','#ff9f5a','#a78bfa','#4fd1c5','#f472b6'],grey:'#8b979e',pos:'#5aa9e6',neg:'#ff9f5a'},
+  light:{bg:'#f4f7f5',surface:'#ffffff',fg:'#111a1f',muted:'#50606a',line:'#d9e2e6',accent:'#4d7c0f',soft:'#e8f2da',cats:['#4d7c0f','#1f6fb8','#c2570c','#6d4fd8','#0f8a80','#c0307a'],grey:'#6b7780',pos:'#1f6fb8',neg:'#c2570c'}},
+ /* Charcoal and teal: from Adam's Pinterest boards (20 Oct 2026). Categories passed the colourblind check in both modes. */
+ teal:{name:'Charcoal and teal',
+  dark:{bg:'#111315',surface:'#1a1d20',fg:'#eceff0',muted:'#9aa3a6',line:'#2b3033',accent:'#2ec4b0',soft:'#14302c',cats:['#20a89b','#db684c','#538ae6','#c35890','#b8892d','#9468c2'],grey:'#8a9396',pos:'#2ec4b0',neg:'#db684c'},
+  light:{bg:'#f4f6f6',surface:'#ffffff',fg:'#121616',muted:'#56605f',line:'#dde3e2',accent:'#0f8a7e',soft:'#dff3f0',cats:['#12a195','#c0482a','#2663c9','#9e366f','#a57710','#7c50a8'],grey:'#6d7776',pos:'#0f8a7e',neg:'#c0482a'}}
+};
+let cur={p:'blue',m:'dark'};
+try{const s=JSON.parse(localStorage.getItem('chartStd')||'null');if(s&&PAL[s.p]&&(s.m==='dark'||s.m==='light'))cur=s}catch(e){}
+
+function applyPalette(){
+  const t=PAL[cur.p][cur.m],st=STATUS[cur.m],r=document.documentElement.style;
+  document.documentElement.dataset.theme=cur.m;
+  const set={bg:t.bg,surface:t.surface,fg:t.fg,muted:t.muted,line:t.line,accent:t.accent,'accent-soft':t.soft,grey:t.grey,pos:t.pos,neg:t.neg,'s-ok':st.ok,'s-warn':st.warn,'s-bad':st.bad};
+  t.cats.forEach((c,i)=>set['c'+(i+1)]=c);
+  for(const k in set)r.setProperty('--'+k,set[k]);
+  document.querySelectorAll('#pal button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===cur.p));
+  document.querySelectorAll('#mode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===cur.m));
+  try{localStorage.setItem('chartStd',JSON.stringify(cur))}catch(e){}
+  document.getElementById('sw').innerHTML=t.cats.map((c,i)=>`<span><i style="--c:${c}"></i>Slot ${i+1} ${c}</span>`).join('');
+  if(window.runCheck)window.runCheck(t.cats,cur.m,t.surface,PAL[cur.p].name);
+}
+document.getElementById('pal').addEventListener('click',e=>{const b=e.target.closest('button');if(b){cur.p=b.dataset.p;applyPalette()}});
+document.getElementById('mode').addEventListener('click',e=>{const b=e.target.closest('button');if(b){cur.m=b.dataset.m;applyPalette()}});
+
+/* ---------- Sample data ---------- */
+const MONTHS=['Jul','Aug','Sep','Oct'];
+const ADDED=[4,1,8,4];
+const CUM=ADDED.reduce((a,v)=>(a.push((a.at(-1)||0)+v),a),[]);
+const PLATFORM={cc:[1,1,8,4],gpt:[3,0,0,0]};
+const CATS=[
+ {n:'Career',builds:[['Daily Job Scanner',3.5],['Company Briefs',4.0],['HTML Report',2.5],['KPI Creator',3.0],['Publish to GitHub',1.5]]},
+ {n:'Sport',builds:[['Grizzly Bears poll',2.5],['ACCA info sheet',2.0],['ACCA seat planner',3.5],['Dragon boat demo',1.0]]},
+ {n:'Daily ops',builds:[['Morning brief',1.5],['Sort my inbox',2.0],['Speed report',4.0]]},
+ {n:'Publishing',builds:[['Create repo',1.0],['Update GitHub',1.0],['Review UX standards',2.5]]},
+ {n:'Personal brand',builds:[['AI Build Log',2.1]]},
+ {n:'Home',builds:[['Site visit alert',2.0]]}
+].map(c=>({...c,h:c.builds.reduce((a,b)=>a+b[1],0)})).sort((a,b)=>b.h-a.h);
+const KPIS=[
+ {n:'Applications sent',pace:'Need 2.3 a week',a:18,t:25,max:30,unit:'',s:'warn',sl:'Behind'},
+ {n:'First interviews',pace:'Need 1 a week',a:5,t:8,max:10,unit:'',s:'bad',sl:'Off track'},
+ {n:'Response rate',pace:'Target 25%',a:28,t:25,max:40,unit:'%',s:'ok',sl:'On track'},
+ {n:'Days to first reply',pace:'Lower is better',a:9,t:7,max:14,unit:'d',s:'warn',sl:'Behind',lower:true}
+];
+const WEEKS=['W1','W2','W3','W4','W5','W6','W7','W8'];
+const ROLES={t1:[3,5,4,6,8,7,9,11],t2:[6,8,7,10,9,12,11,14]};
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const HEAT=DAYS.map((d,r)=>WEEKS.map((w,c)=>{const base=r<5?6:2;return Math.max(0,Math.round(base+((r*7+c*13)%9)-3+c*0.6))}));
+const VAR=[{n:'Applications sent',v:-28},{n:'First interviews',v:-38},{n:'Response rate',v:12},{n:'Days to first reply',v:-29},{n:'Roles scanned',v:18}];
+const RINGS=[
+ {n:'Response rate',v:28,t:25,sub:'Target 25%',s:'ok',sl:'On track'},
+ {n:'Applications',v:72,t:100,sub:'18 of 25 sent',s:'warn',sl:'Behind'},
+ {n:'Interviews',v:63,t:100,sub:'5 of 8 booked',s:'bad',sl:'Off track'}
+];
+/* Before and after rings: [measure, before, after, out of (round total above both), big number, line under]. out of 0 = a % change: outer ring full, inner ring is what is left */
+const NEST=[
+ ['Roles found a week',9,25,30,'25','from 9 (+178%), out of 30'],
+ ['Skill runs a week',22,42,60,'42','from 22 (+91%), out of 60'],
+ ['Hours scanning job boards',100,40,0,'−60%','about 6 hours a week saved'],
+ ['Manual follow-ups',100,55,0,'−45%','reminders now automatic']
+];
+/* Bubble: [build, category, build hours, runs, run hours] */
+const BUB=[
+ ['Daily Job Scanner','Career',3.5,48,9],['Company Briefs','Career',4.0,12,6],['HTML Report','Career',2.5,10,1.5],['KPI Creator','Career',3.0,4,2],['Publish to GitHub','Career',1.5,22,1],
+ ['Grizzly Bears poll','Sport',2.5,14,1.2],['ACCA info sheet','Sport',2.0,6,0.8],['ACCA seat planner','Sport',3.5,9,1.5],['Dragon boat demo','Sport',1.0,2,0.2],
+ ['Morning brief','Daily ops',1.5,40,3],['Sort my inbox','Daily ops',2.0,25,2.5],['Speed report','Daily ops',4.0,56,1],
+ ['Create repo','Publishing',1.0,8,0.4],['Update GitHub','Publishing',1.0,18,0.6],['Review UX standards','Publishing',2.5,7,1],
+ ['AI Build Log','Personal brand',2.1,5,0.5],['Site visit alert','Home',2.0,30,0.3]
+];
+/* Sankey links: [from, to, builds] */
+const SKL=[
+ ['Claude Code','Career',3],['ChatGPT','Career',2],['Claude Code','Sport',3],['ChatGPT','Sport',1],['Claude Code','Daily ops',3],['Claude Code','Publishing',3],['Claude Code','Personal brand',1],['Claude Code','Home',1],
+ ['Career','Running',5],['Sport','Running',3],['Sport','Issues',1],['Daily ops','Running',3],['Publishing','Running',3],['Personal brand','Running',1],['Home','Issues',1]
+];
+/* Experimental data */
+const RADIAL=[['Job scan coverage',100],['LinkedIn posts',95],['Networking calls',85],['Company briefs',75],['Portfolio pages',65],['Applications',55],['Interviews',45]];
+const TOOL_GROUPS=['Claude','Code','GitHub','Apps','Research','ChatGPT'];
+const TOOLS=[
+ ['Claude Code skill','Claude',10],['MCP connectors','Claude',6],['Artifacts','Claude',5],['Subagents','Claude',4],['Routines','Claude',3],['Scheduled tasks','Claude',3],
+ ['HTML and CSS','Code',8],['JavaScript','Code',7],['Python','Code',3],['PowerShell','Code',2],
+ ['GitHub Pages','GitHub',7],['GitHub repo','GitHub',6],['gh CLI','GitHub',4],
+ ['Chrome','Apps',5],['Gmail','Apps',4],['Google Calendar','Apps',3],['WhatsApp Web','Apps',2],['Pinterest','Apps',1],
+ ['Web search','Research',6],['Web fetch','Research',4],['BOM weather','Research',2],
+ ['ChatGPT','ChatGPT',3],['Custom GPT','ChatGPT',2],['GPT image','ChatGPT',1]
+];
+/* Dot map of Australia: land ranges [lon from, lon to] per whole degree of latitude, 11S to 43S (approximate outline) */
+const AU_LAND={11:[[142,143]],12:[[130,137],[141,143]],13:[[127,137],[141,144]],14:[[126,136],[141,144]],15:[[124,136],[141,145]],16:[[123,139],[141,146]],
+ 17:[[122,146]],18:[[121,146]],19:[[119,147]],20:[[116,148]],21:[[114,149]],22:[[113,150]],23:[[113,151]],24:[[113,152]],25:[[113,153]],26:[[113,153]],27:[[113,153]],
+ 28:[[114,153]],29:[[114,153]],30:[[114,153]],31:[[115,153]],32:[[115,125],[133,152]],33:[[115,124],[134,137],[138,151]],34:[[115,123],[135,137],[138,151]],
+ 35:[[116,119],[136,137],[138,150]],36:[[139,150]],37:[[139,150]],38:[[140,148]],39:[[143,147]],41:[[144,148]],42:[[145,148]],43:[[146,148]]};
+/* [city, lon, lat south, share of roles %, side for callout] */
+const CITIES=[['Sydney',151.2,33.9,46,'r'],['Melbourne',145,37.8,27,'r'],['Brisbane',153,27.5,11,'r'],['Canberra',149.1,35.3,7,'r'],['Perth',115.9,32,5,'l'],['Adelaide',138.6,34.9,4,'l']];
+/* Swarm: 260 roles packed into a circle (seeded, so it is the same every load) */
+const SWARM=(()=>{let a=20261020;const rnd=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  const want=260,items=[];for(let i=0;i<want;i++){const u=rnd();items.push({r:2.6+7*u**2.6,t1:rnd()<0.3})}
+  /* Tight packing: sizes stay mixed (random order); each dot takes the free spot closest to the centre, 1 unit apart */
+  const placed=[],grid=new Map(),cell=20,gapU=1,key=(i,j)=>i+','+j;
+  const free=(x,y,r)=>{const gi=Math.floor(x/cell),gj=Math.floor(y/cell);for(let i=gi-1;i<=gi+1;i++)for(let j=gj-1;j<=gj+1;j++){const b=grid.get(key(i,j));if(b)for(const p of b)if(Math.hypot(p.x-x,p.y-y)<p.r+r+gapU)return false}return true};
+  const add=p=>{const k=key(Math.floor(p.x/cell),Math.floor(p.y/cell));(grid.get(k)||grid.set(k,[]).get(k)).push(p);placed.push(p)};
+  let reach=0;
+  for(const it of items){let done=false;const off=rnd()*Math.PI*2;
+    for(let d=Math.max(0,reach-24);!done;d+=0.6){const step=d<1?7:Math.min(0.5,1.2/d);
+      for(let a=0;a<Math.PI*2&&!done;a+=step){const x=d*Math.cos(a+off),y=d*Math.sin(a+off);
+        if(free(x,y,it.r)){add({...it,x,y,m:Math.round(40+(it.r-2.6)/7*58)});reach=Math.max(reach,d);done=true}}}}
+  const ext=Math.max(...placed.map(p=>Math.hypot(p.x,p.y)+p.r)),k=190/ext;
+  return placed.map((p,i)=>({...p,x:200+p.x*k,y:200+p.y*k,r:p.r*k,id:i+1}))})();
+/* Loose swarm: the same 260 roles, each dropped at a random free spot inside the circle (first version, kept for comparison) */
+const SWARM_LOOSE=(()=>{let a=20261020;const rnd=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  const want=260,items=[];for(let i=0;i<want;i++){const u=rnd();items.push({r:2.6+7*u**2.6,t1:rnd()<0.3})}
+  items.sort((p,q)=>q.r-p.r);const placed=[],R=190,C=200;
+  for(const it of items){for(let k=0;k<900;k++){const ang=rnd()*Math.PI*2,d=Math.sqrt(rnd())*(R-it.r),x=C+d*Math.cos(ang),y=C+d*Math.sin(ang);
+    if(placed.every(p=>Math.hypot(p.x-x,p.y-y)>=p.r+it.r+1.5)){placed.push({...it,x,y,m:Math.round(40+(it.r-2.6)/7*58)});break}}}
+  return placed.map((p,i)=>({...p,id:i+1}))})();
+const MULTI=[
+ {n:'Career',v:[6,8,7,9,10,12,11,14]},{n:'Daily ops',v:[10,11,10,12,13,12,14,15]},{n:'Sport',v:[2,2,3,2,2,3,2,2]},
+ {n:'Publishing',v:[1,3,2,4,2,3,5,4]},{n:'Personal brand',v:[0,0,1,2,1,3,2,4]},{n:'Home',v:[3,3,3,3,4,3,3,3]}
+];
+
+/* ---------- v1.2 sample data: root cause, target tracking and comparison sets ---------- */
+/* Bridge: [step, value, 1 if a total, short label for narrow screens] */
+const BRIDGE=[['Last month',8,1],['Fewer applications',-2,0,'Fewer apps'],['More Tier 2 roles',-2],['Better match',1],['This month',5,1]];
+const PARETO=[['Role closed before applying','Role closed',18],['Missing a must-have skill','Missing skill',12],['Salary above the band','Salary',7],['Applied late','Late',5],['Location','Location',3],['Other','Other',2]];
+/* Driver tree: [name, value, target, status, note, level, root-cause branch] */
+const TREE=[
+ ['First interviews','5','8','bad','Applications × interview rate',0,true],
+ ['Applications sent','18','25','warn','Roles found × apply rate',1,true],
+ ['Interview rate','28%','32%','warn','Reply rate × reply to interview',1,false],
+ ['Roles found','260','240','ok','8 weeks of scans',2,false],
+ ['Apply rate','6.9%','10.4%','bad','Root cause: the biggest gap',2,true],
+ ['Reply rate','40%','40%','ok','Replies ÷ applications',2,false],
+ ['Reply to interview','70%','80%','warn','Interviews ÷ replies',2,false]];
+const BANDS=[
+ {n:'Applications sent',a:18,t:25,max:30,unit:''},
+ {n:'First interviews',a:5,t:8,max:10,unit:''},
+ {n:'Response rate',a:28,t:25,max:40,unit:'%'},
+ {n:'Roles scanned',a:260,t:240,max:300,unit:''}];
+const APPS=[3,2,3,1,2,3,2,2],APPS_CUM=APPS.reduce((a,v)=>(a.push((a.at(-1)||0)+v),a),[]),APPS_GOAL=25;
+const SCAN_MIN=[12,11,13,12,14,12,11,13,12,12,13,11,12,20,12,13,11,12,13,12];
+const SLOPE=[['SEEK',22,30],['LinkedIn',25,18],['Indeed',12,14],['Michael Page',30,31],['Greenhouse',20,21]];
+const LOLLI=[['Greenhouse',82],['Michael Page',76],['LinkedIn',71],['SEEK',68],['Indeed',59],['Employment Hero',55]];
+/* Hexagonal swarm: one dot per skill run, weeks 1 to 4 against weeks 5 to 8, by category */
+/* Beeswarm: 120 roles with a match score, Tier 1 scores higher on average (seeded, so it is the same every load) */
+const BEES=(()=>{let a=20261026;const rnd=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  const g=(mu,sd)=>mu+sd*Math.sqrt(-2*Math.log(1-rnd()))*Math.cos(2*Math.PI*rnd());
+  return Array.from({length:120},(_,i)=>({id:i+1,t1:i<40,m:Math.round(Math.max(40,Math.min(99,i<40?g(74,9):g(58,10))))}))})();
+const HEXRUNS=[0,4].map(i0=>MULTI.map(m=>m.v.slice(i0,i0+4).reduce((x,y)=>x+y,0)));
+const fmtH=h=>{const m=Math.round(h*60);return `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`};
+const minus=n=>n<0?'−'+Math.abs(n):'+'+n;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- Tiles ---------- */
+const totalH=CATS.reduce((a,c)=>a+c.h,0);
+/* barbell sample: each category's share of skill runs, weeks 1 to 4 against weeks 5 to 8 */
+const BARB=(()=>{const sum=(m,i0)=>m.v.slice(i0,i0+4).reduce((x,y)=>x+y,0),ta=MULTI.reduce((x,m)=>x+sum(m,0),0),tb=MULTI.reduce((x,m)=>x+sum(m,4),0);
+ return MULTI.map((m,i)=>({n:m.n,c:`--c${i+1}`,a:sum(m,0)/ta*100,b:sum(m,4)/tb*100}))})();
+
+/* KPI tiles: the same five job-search KPIs as "KPIs against target" and "Ahead or behind target".
+   s = weekly values (12 weeks), t = target level for the dashed line, prov = how many recent points are still open (dashed tail) */
+const TILES=[
+ {nm:'Applications sent',v:'18',s:[0,2,3,5,6,8,9,11,13,14,16,18],t:25,tgt:'Target 25 by 30-Nov-26',gap:'−7 (−28%)',need:'Needs +2.3 a week',trend:'Trend +1.6 a week',ts:'warn',st:'warn',sl:'Behind',why:'Applications are the top of the funnel. Too few now means too few interviews in four weeks.'},
+ {nm:'First interviews',v:'5',s:[0,0,1,1,1,2,2,3,3,4,4,5],t:8,tgt:'Target 8 by 30-Nov-26',gap:'−3 (−38%)',need:'Needs +1 a week',trend:'Trend +0.4 a week',ts:'bad',st:'bad',sl:'Off track',why:'Interviews are where offers come from. This is the KPI to fix first.'},
+ {nm:'Response rate',v:'28%',s:[20,22,21,24,23,25,26,25,27,26,28,28],t:25,tgt:'Target 25% by 30-Nov-26',gap:'+3 points',need:'Needs to hold above 25%',trend:'Trend +0.6 points a week',ts:'',st:'ok',sl:'On track',why:'Shows whether applications are well targeted, not just numerous.'},
+ {nm:'Days to first reply',v:'9d',s:[14,13,13,12,12,11,11,10,10,9,9,9],t:7,lower:true,prov:3,tgt:'Target 7 days by 30-Nov-26',gap:'+2 days',need:'Needs −0.5 days a week',trend:'Trend −0.3 days a week',ts:'warn',st:'warn',sl:'Behind',note:'About 8.5 days once open replies land',why:'Fast replies mean recruiters are interested. Slow ones flag weak fit.'},
+ {nm:'Roles scanned',v:'260',s:[12,35,58,80,104,126,150,172,196,218,240,260],t:220,tgt:'Target 220 by 30-Nov-26',gap:'+40 (+18%)',need:'On pace',trend:'Trend +22 a week',ts:'',st:'ok',sl:'On track',why:'Coverage of the market. Enough roles scanned keeps the funnel full.'}
+];
+function spark(vals,tgt,prov=0){const w=100,h=40,mx=Math.max(...vals,tgt),mn=Math.min(...vals,tgt),Y=v=>h-3-(v-mn)/(mx-mn||1)*(h-6);
+  const pts=vals.map((v,i)=>[i*w/(vals.length-1),Y(v)]),P=a=>'M'+a.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L'),cut=vals.length-1-prov;
+  const solid=P(pts.slice(0,cut+1)),dash=prov?`<path class="dash" d="${P(pts.slice(cut))}"/>`:'',ty=Y(tgt).toFixed(1),endPct=(pts.at(-1)[1]/h*100).toFixed(1);
+  return `<div class="spk"><svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path class="area" d="${P(pts)}L${w},${h}L0,${h}Z"/><line class="tgt-s" x1="0" x2="${w}" y1="${ty}" y2="${ty}"/><path d="${solid}"/>${dash}</svg><span class="end" style="top:calc(${endPct}% - 4px)"></span></div>`}
+const ICON={ok:'✓',warn:'!',bad:'×'};
+document.getElementById('tiles').innerHTML=TILES.map(t=>`<div class="stat" tabindex="0" role="group" aria-label="${esc(`${t.nm}: ${t.v}. ${t.sl}. ${t.tgt}. Gap ${t.gap}.`)}" data-tip="<b>Why it matters</b><div>${esc(t.why)}</div>">
+ <span class="nm">${t.nm}</span>
+ <div class="tile-top"><div class="act"><b>${t.v}</b></div>${spark(t.s,t.t,t.prov)}</div>
+ ${t.prov?'<span class="tag prov">Provisional</span>':'<span></span>'}
+ <span class="ln">${t.tgt}</span>
+ <span class="ln">Gap <b>${t.gap}</b></span>
+ <span class="ln">${t.need}</span>
+ <span class="ln trend"${t.ts?` data-s="${t.ts}"`:''}>${t.trend}</span>
+ <span class="st" data-s="${t.st}"><span class="ic" aria-hidden="true">${ICON[t.st]}</span>${t.sl}</span>
+ ${t.note?`<span class="note">${t.note}</span>`:'<span></span>'}</div>`).join('');
+
+/* ---------- Cards ---------- */
+const table=(head,rows)=>`<details class="data"><summary>See data</summary><table><thead><tr>${head.map(h=>`<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></details>`;
+const swarmTable=sw=>table(['Tier','Roles','Average match'],[true,false].map(t=>{const g=sw.filter(s=>s.t1===t);return [t?'Tier 1':'Tier 2',g.length,Math.round(g.reduce((a,s)=>a+s.m,0)/g.length)+'%']}));
+const CARDS=[
+ {id:'step',title:'Builds over time',hl:'<b>17</b> builds',replay:true,
+  legend:'',
+  cap:'<b>Rule shown:</b> running total with each month labelled by what it added (4 + 1 + 8 + 4 = 17). Single series, so no legend and a soft fill under the line. Draws on first view; click to replay.',
+  data:table(['Month','Added','Running total'],MONTHS.map((m,i)=>[m,i?'+'+ADDED[i]:ADDED[i],CUM[i]]))},
+ {id:'bars',title:'Build time by category',hl:`<b>${fmtH(totalH)}</b> in total`,replay:true,
+  legend:'',
+  cap:'<b>Rule shown:</b> one measure, one colour. Sorted largest first. Value at the bar tip. Select a bar to see its builds.',
+  data:table(['Category','Builds','Build time'],CATS.map(c=>[c.n,c.builds.length,fmtH(c.h)]))},
+ {id:'bullet',title:'KPIs against target',hl:'<b>1 of 4</b> on track',replay:true,
+  legend:'<span><i style="--c:var(--accent)"></i>Actual</span><span><i style="--c:var(--fg);width:2px;height:12px"></i>Target</span>',
+  cap:'<b>Rule shown:</b> KPI Creator style. Actual bar, target line, pace needed under the name. Status is icon, word and colour together.',
+  data:table(['KPI','Actual','Target','Status'],KPIS.map(k=>[k.n,k.a+k.unit,k.t+k.unit,k.sl]))},
+ {id:'line',title:'New roles found per week',hl:'<b>25</b> this week',replay:true,
+  legend:'<span><i class="ln" style="--c:var(--c1)"></i>Tier 1</span><span><i class="ln" style="--c:var(--c3)"></i>Tier 2</span>',
+  cap:'<b>Rule shown:</b> two series, 2px lines, legend below plus labels at the line ends only. Hover anywhere for both values.',
+  data:table(['Week','Tier 1','Tier 2'],WEEKS.map((w,i)=>[w,ROLES.t1[i],ROLES.t2[i]]))},
+ {id:'stack',title:'Builds by month and platform',hl:'<b>14</b> Claude Code · <b>3</b> ChatGPT',replay:true,
+  legend:'<span><i style="--c:var(--accent)"></i>Claude Code</span><span><i style="--c:var(--grey)"></i>ChatGPT</span>',
+  cap:'<b>Rule shown:</b> colour follows the entity: Claude Code is always the accent, ChatGPT always grey. 2px gap between segments. Total on the cap.',
+  data:table(['Month','Claude Code','ChatGPT','Total'],MONTHS.map((m,i)=>[m,PLATFORM.cc[i],PLATFORM.gpt[i],PLATFORM.cc[i]+PLATFORM.gpt[i]]))},
+ {id:'heat',title:'Skill runs by day',hl:`<b>${HEAT.flat().reduce((a,b)=>a+b,0)}</b> runs in 8 weeks`,replay:false,
+  legend:'<span>Fewer</span><span class="ramp">'+[15,35,55,78,100].map(p=>`<i style="--c:color-mix(in oklab,var(--accent) ${p}%,var(--surface))"></i>`).join('')+'</span><span>More</span>',
+  cap:'<b>Rule shown:</b> magnitude uses one colour from light to dark, never a rainbow. 2px gaps between cells. Hover a cell for its count.',
+  data:table(['Day',...WEEKS],DAYS.map((d,r)=>[d,...HEAT[r]]))},
+ {id:'div',title:'Ahead or behind target',hl:'<b>2 of 5</b> ahead',replay:true,
+  legend:'<span><i style="--c:var(--neg)"></i>Behind</span><span><i style="--c:var(--pos)"></i>Ahead</span>',
+  cap:'<b>Rule shown:</b> direction uses two colours split at a neutral zero line. Every bar carries its signed value, so colour is never the only cue.',
+  data:table(['KPI','Variance to target'],VAR.map(v=>[v.n,minus(v.v)+'%']))},
+ {id:'barbell',title:'Share of skill runs, first 4 weeks against last 4',hl:'<b>2</b> big movers',replay:true,
+  legend:'',
+  cap:'<b>Rule shown:</b> barbell for one measure in two periods. Two vertical axes on the same scale, hollow dot then filled dot, joined by the move. Only the two biggest movers keep full colour, with name and change on the right. Categories in the legend.',
+  data:table(['Category','W1 to W4','W5 to W8','Change'],BARB.map(b=>[b.n,b.a.toFixed(1)+'%',b.b.toFixed(1)+'%',(b.b-b.a>0?'+':'−')+Math.abs(b.b-b.a).toFixed(1)+' points']))},
+ {id:'mix',title:'Where build time went',hl:'<b>6</b> categories',replay:true,
+  legend:'',
+  cap:'<b>Rule shown:</b> part of a whole as one stacked bar, not a pie. Categorical colours in fixed order. Legend below with values.',
+  data:table(['Category','Build time','Share'],CATS.map(c=>[c.n,fmtH(c.h),Math.round(c.h/totalH*100)+'%']))},
+ {id:'ring',title:'Progress to target',hl:'<b>1 of 3</b> on track',replay:true,
+  legend:'<span><i style="--c:var(--accent)"></i>Progress</span><span><i style="--c:var(--fg);width:2px;height:12px"></i>Target</span>',
+  cap:'<b>Rule shown:</b> a ring for one percentage only, number in the middle in text colour. Status is icon, word and colour. More than one share of a whole goes in a bar, not a ring.',
+  data:table(['KPI','Progress','Target','Status'],RINGS.map(r=>[r.n,r.v+'%',r.t+'%',r.sl]))},
+ {id:'nest',title:'Before and after rings',hl:'<b>2</b> counts · <b>2</b> changes',replay:true,
+  legend:'<span><i style="--c:var(--grey);border-radius:50%"></i>Outer ring: before</span><span><i style="--c:var(--accent);border-radius:50%"></i>Inner ring: after</span>',
+  cap:'<b>Rule shown:</b> nested before and after rings, up to 4 in a row. Outer ring is before, inner ring is after. For a count, both rings are a share of the same round total above both values, with headroom so the inner ring is not full, and the total is named under the number ("out of 30"). For a % change, the outer ring is full and the inner ring is what is left (−60% leaves 40%). Big number in the accent is the after value or the change; the before value and change go under it. Bends honest length a little (the inner ring is shorter at the same share), so the number carries the value. First used for the ThoughtSpot proof in the Green by Nature brief (25-Nov-26).',
+  data:table(['Measure','Before','After','Out of'],NEST.map(d=>d[3]?[d[0],d[1],d[2],d[3]]:[d[0],'100%',d[2]+'%','change'] ))},
+ {id:'multi',title:'Skill runs per week by category',hl:'<b>8</b> weeks',replay:true,
+  legend:'',
+  cap:'<b>Rule shown:</b> small multiples. One mini chart per category, all on the same 0 to 16 scale, so heights compare directly. Latest week labelled. Soft fill under each single line.',
+  data:table(['Category',...WEEKS],MULTI.map(m=>[m.n,...m.v]))},
+ {id:'bubble',title:'Build effort against use',hl:'<b>17</b> builds',replay:true,
+  legend:'<span><i style="--c:var(--accent);border-radius:50%"></i>One build. Bubble size is total run time.</span>',
+  cap:'<b>Rule shown:</b> bubble chart for three measures at once: build time across, runs up, run time as size. One colour, the three most used labelled, the rest on hover. Bubbles sized by area, not width.',
+  data:table(['Build','Build time','Runs','Run time'],[...BUB].sort((a,b)=>b[3]-a[3]).map(b=>[b[0],fmtH(b[2]),b[3],fmtH(b[4])]))},
+ {id:'sun',title:'Build time by category and build',hl:`<b>${fmtH(totalH)}</b> in total`,replay:true,
+  legend:'',
+  cap:'<b>Rule shown:</b> sunburst for a two-level part of a whole only. Inner ring is the category, outer ring its builds in a softer step of the same colour. Total in the middle. To compare sizes, use the bar chart.',
+  data:table(['Category','Build','Build time'],CATS.flatMap(c=>c.builds.map(b=>[c.n,b[0],fmtH(b[1])])))},
+ {id:'sankey',title:'How builds flow from platform to status',hl:'<b>15</b> running · <b>2</b> issues',replay:true,wide:true,
+  legend:'',
+  cap:'<b>Rule shown:</b> sankey for flows between stages. Band width is the number of builds. Bands take the colour of the category they pass through, so each category can be followed end to end. Status keeps its icon and word. Hover a band for its count.',
+  data:table(['From','To','Builds'],SKL.map(l=>[l[0],l[1],l[2]]))},
+ {id:'bridge',title:'Why first interviews fell from 8 to 5',hl:'<b>−3</b> interviews',replay:true,
+  legend:'<span><i style="--c:var(--neg)"></i>Pulled down</span><span><i style="--c:var(--pos)"></i>Pushed up</span><span><i style="--c:var(--fg)"></i>Total</span>',
+  cap:'<b>Rule shown:</b> bridge (waterfall) split into effects. Start bar, one bar per effect, end bar. The effects add up exactly to the change (−2 −2 +1 = −3). Signed value on every bar. Root cause set.',
+  data:table(['Step','Effect','Running total'],(()=>{let r=0;return BRIDGE.map(b=>{r=b[2]?b[1]:r+b[1];return [b[0],b[2]?b[1]:minus(b[1]),r]})})())},
+ {id:'pareto',title:'Why applications got no reply',hl:'<b>3</b> causes make 79%',replay:true,
+  legend:'<span><i style="--c:var(--accent)"></i>The vital few</span><span><i style="--c:color-mix(in oklab,var(--accent) 35%,var(--surface))"></i>The rest</span><span><i class="ln" style="--c:var(--fg)"></i>Running total</span>',
+  cap:'<b>Rule shown:</b> Pareto. Causes sorted largest first, one colour, with the running total as a line to 100% and a dashed 80% marker. The causes up to 80% keep full colour. Shares sit on the line, so there is no second axis. Root cause set.',
+  data:table(['Cause','Count','Running total'],(()=>{const t=PARETO.reduce((a,p)=>a+p[2],0);let c=0;return PARETO.map(p=>{c+=p[2];return [p[0],p[2],Math.round(c/t*100)+'%']})})())},
+ {id:'tree',title:'What sits under first interviews',hl:'Root cause: <b>apply rate</b>',replay:false,wide:true,
+  legend:'<span><i style="--c:var(--accent)"></i>Root cause branch</span><span>Left edge is status: ✓ on track, ! behind, × off track</span>',
+  cap:'<b>Rule shown:</b> driver tree. The KPI on the left, its drivers to the right, two levels at most. Each driver multiplies out to the level above (18 × 28% = 5). The branch holding the root cause is highlighted; the rest are muted. Root cause set.',
+  data:table(['Driver','Level','Actual','Target','Status'],TREE.map(t=>[t[0],t[5]===0?'KPI':'Level '+t[5],t[1],t[2],{ok:'✓ On track',warn:'! Behind',bad:'× Off track'}[t[3]]]))},
+ {id:'bands',title:'On track against target (bullet chart)',hl:'<b>2 of 4</b> at target',replay:true,
+  legend:'<span><i style="--c:color-mix(in oklab,var(--grey) 22%,var(--surface))"></i>Poor</span><span><i style="--c:color-mix(in oklab,var(--grey) 40%,var(--surface))"></i>Fair</span><span><i style="--c:color-mix(in oklab,var(--grey) 60%,var(--surface))"></i>Good</span><span><i style="--c:var(--fg)"></i>Actual</span><span><i style="--c:var(--accent);width:3px;height:12px"></i>Target</span>',
+  cap:'<b>Rule shown:</b> bullet chart. The actual is a thin bar on three soft bands (under 60% of target, 60 to 90%, then good), with the target as a tick. Value at the end. Replaces a gauge. Target tracking set.',
+  data:table(['KPI','Actual','Target'],BANDS.map(b=>[b.n,b.a+b.unit,b.t+b.unit]))},
+ {id:'path',title:'Applications against the path to 25',hl:'<b>7</b> behind the path',replay:true,
+  legend:'<span><i class="ln" style="--c:var(--accent)"></i>Actual, running total</span><span><i class="ln" style="--c:var(--muted)"></i>Path needed (dashed)</span>',
+  cap:'<b>Rule shown:</b> cumulative actual against the required path. The dashed line runs from zero to the target on its date; the gap is labelled at today. Soft fill under the actual only. Target tracking set.',
+  data:table(['Week','Applications','Running total','Path needed'],WEEKS.map((w,i)=>[w,APPS[i],APPS_CUM[i],(APPS_GOAL*(i+1)/8).toFixed(1)]))},
+ {id:'control',title:'Is the slow job scan a signal or noise?',hl:'<b>1</b> signal in 20 days',replay:true,
+  legend:'<span><i class="ln" style="--c:var(--grey)"></i>Minutes per scan</span><span><i style="--c:var(--accent);border-radius:50%"></i>Signal</span><span>Hairlines: average and limits</span>',
+  cap:'<b>Rule shown:</b> control chart. A run chart with its average and limits at 3 standard deviations. Only points outside the limits (or 7 in a row on one side) are marked and labelled; everything inside is noise. Target tracking set.',
+  data:table(['Day','Minutes'],SCAN_MIN.map((v,i)=>['Day '+(i+1),v]))},
+ {id:'slope',title:'Response rate by job site, last month to this',hl:'<b>2</b> big movers',replay:true,
+  legend:'',
+  cap:'<b>Rule shown:</b> slope chart for two points in time. Labels at both ends, pushed apart so they never touch. The two lines the story is about keep colour; the rest are muted. Comparison set.',
+  data:table(['Job site','Last month','This month','Change'],SLOPE.map(r=>[r[0],r[1]+'%',r[2]+'%',minus(r[2]-r[1])+' points']))},
+ {id:'lolli',title:'Average match score by job site',hl:'LinkedIn <b>71%</b>',replay:true,
+  legend:'<span><i style="--c:var(--accent);border-radius:50%"></i>Highlighted</span><span><i style="--c:var(--grey);border-radius:50%"></i>Other sites</span><span><i class="ln" style="--c:var(--muted)"></i>Target 70% (dashed)</span>',
+  cap:'<b>Rule shown:</b> lollipop ranking. Thin stem, 9px dot, sorted largest first, value beside the dot. One item in the accent, the rest muted. Target as a dashed line. Comparison set.',
+  data:table(['Job site','Match score'],LOLLI.map(l=>[l[0],l[1]+'%']))},
+ {id:'bees',title:'Spread of match scores, every role scanned',hl:`<b>${BEES.length}</b> roles`,replay:true,
+  legend:'<span><i style="--c:var(--accent);border-radius:50%"></i>Tier 1</span><span><i style="--c:color-mix(in oklab,var(--accent) 45%,var(--surface));border-radius:50%"></i>Tier 2</span><span>One dot per role · line is the median</span>',
+  cap:'<b>Rule shown:</b> beeswarm. One dot per role along one axis, packed so dots never overlap, one row per group. Median labelled; only the extremes are named. Shows spread and outliers that an average hides. Comparison set.',
+  data:swarmTable(BEES)},
+ {id:'hex',title:'Every skill run, first 4 weeks against last 4',hl:`<b>${HEXRUNS[0].reduce((a,b)=>a+b,0)}</b> to <b>${HEXRUNS[1].reduce((a,b)=>a+b,0)}</b> runs`,replay:true,wide:true,
+  legend:MULTI.map((m,i)=>`<span><i style="--c:var(--c${i+1});border-radius:50%"></i>${m.n}</span>`).join(''),
+  cap:'<b>Rule shown:</b> hexagonal dot swarm. One dot per run, packed on a hex grid from the centre out, the same dot size in both swarms, so the bigger swarm is the bigger total. The largest category fills the middle; the rest take a wedge each, clockwise from the top. Categories fade in one after another; click to replay. Totals sit under each swarm; exact counts are in the hover and the data table. From the KPI token report.',
+  data:table(['Category','Weeks 1 to 4','Weeks 5 to 8'],MULTI.map((m,i)=>[m.n,HEXRUNS[0][i],HEXRUNS[1][i]]))}
+];
+const XCARDS=[
+ {id:'radial',title:'Job search goals this month',hl:'<b>1 of 7</b> complete',replay:true,wide:true,
+  legend:'<span><i style="--c:var(--accent)"></i>Progress to goal</span><span><i style="--c:var(--neg)"></i>Lowest</span>',
+  cap:'<b>Experimental: radial bars.</b> Bends the rule on honest length: an outer ring at 50% is drawn longer than an inner ring at 50%. Name and value sit at the start of each ring so nothing relies on arc length. Fine for a cover; use the KPI chart to compare.',
+  data:table(['Goal','Progress'],RADIAL.map(r=>[r[0],r[1]+'%']))},
+ {id:'swarm',title:'Every role scanned in 8 weeks (tight)',hl:`<b>${SWARM.length}</b> roles`,replay:true,
+  legend:'<span><i style="--c:var(--accent);border-radius:50%"></i>Tier 1</span><span><i style="--c:color-mix(in oklab,var(--accent) 45%,var(--surface));border-radius:50%"></i>Tier 2</span><span>Dot size is match score</span>',
+  cap:'<b>Experimental: dot swarm, tight.</b> One dot per role, bundled close together in a circle. Reads as one solid mass, so the Tier 1 share stands out. Not for exact values. Hover a dot for its role; the data table carries the counts.',
+  data:swarmTable(SWARM)},
+ {id:'swarm2',title:'Every role scanned in 8 weeks (loose)',hl:`<b>${SWARM_LOOSE.length}</b> roles`,replay:true,
+  legend:'<span><i style="--c:var(--accent);border-radius:50%"></i>Tier 1</span><span><i style="--c:color-mix(in oklab,var(--accent) 45%,var(--surface));border-radius:50%"></i>Tier 2</span><span>Dot size is match score</span>',
+  cap:'<b>Experimental: dot swarm, loose.</b> The same roles scattered with space between them, biggest placed first. Lighter and airier; individual dots are easier to pick out and hover. Not for exact values.',
+  data:swarmTable(SWARM_LOOSE)},
+ {id:'map',title:'Where the roles are',hl:'<b>46%</b> in Sydney',replay:true,wide:true,
+  legend:'<span><i style="--c:var(--accent)"></i>Most roles</span><span><i style="--c:var(--grey)"></i>Other cities</span>',
+  cap:'<b>Experimental: dot map with callouts.</b> The map is made of dots so it stays light; callouts sit in the sea with a line to each city, so close cities like Sydney and Canberra never overlap. Only the top city takes the accent. Bends the rule on precision: the dot outline is approximate, so use it for where, not for distance.',
+  data:table(['City','Share of roles'],CITIES.map(c=>[c[0],c[3]+'%']))},
+ {id:'cluster',title:'Skills and tools by how many builds use them',hl:'<b>24</b> tools · <b>6</b> groups',replay:true,wide:true,
+  legend:'',
+  cap:'<b>Experimental: grouped bubble cluster.</b> Each bubble is a skill or tool, sized by area for the builds that use it, coloured by group and packed so each group forms one shape. Big bubbles are labelled; hover the rest. Bends the rule on colour count: six group colours side by side, so the legend is required.',
+  data:table(['Tool','Group','Builds'],TOOLS.slice().sort((a,b)=>b[2]-a[2]).map(t=>[t[0],t[1],t[2]]))}
+];
+const cardHTML=c=>`<article class="card${c.wide?' wide':''}" id="card-${c.id}" aria-labelledby="t-${c.id}">
+ <div class="card-head"><h3 id="t-${c.id}">${c.title}</h3><span class="hl">${c.hl}</span></div>
+ <div class="chart${c.replay?' replay':''}" data-c="${c.id}"></div>
+ <div class="legend" id="lg-${c.id}">${c.legend}</div>
+ <p class="cap">${c.cap}</p>
+ ${c.data}</article>`;
+document.getElementById('cards').innerHTML=CARDS.map(cardHTML).join('');
+document.getElementById('xcards').innerHTML=XCARDS.map(cardHTML).join('');
+
+/* ---------- Chart renderers ---------- */
+const R={};
+const svgOpen=(w,h,label)=>`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(label)}">`;
+function yGrid(m,w,Y,ticks){return ticks.map(t=>`<line class="grid-l" x1="${m.l}" x2="${w-m.r}" y1="${Y(t)}" y2="${Y(t)}"/><text class="ax" x="${m.l-8}" y="${Y(t)+4}" text-anchor="end">${t}</text>`).join('')}
+
+R.step=el=>{
+  const w=el.clientWidth,h=250,m={l:34,r:78,t:26,b:30},max=20;
+  const X=i=>m.l+(w-m.l-m.r)*i/4,Y=v=>m.t+(h-m.t-m.b)*(1-v/max);
+  let d=`M${X(0)},${Y(0)}`;CUM.forEach((v,i)=>d+=`V${Y(v)}H${X(i+1)}`);
+  let s=svgOpen(w,h,'Running total of builds by month: '+MONTHS.map((mo,i)=>`${mo} ${i?'+':''}${ADDED[i]}`).join(', ')+', 17 in total')+yGrid(m,w,Y,[0,5,10,15,20]);
+  s+=MONTHS.map((mo,i)=>`<text class="ax" x="${(X(i)+X(i+1))/2}" y="${h-8}" text-anchor="middle">${mo}</text>`).join('');
+  s+=`<path class="fade" style="--d:1.2s;fill:var(--accent);fill-opacity:.1" d="${d}V${Y(0)}Z"/>`;
+  s+=`<path class="draw" pathLength="1" d="${d}" style="fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round"/>`;
+  CUM.forEach((v,i)=>{const dl=`--d:${(i+1)*0.42}s`;
+    s+=`<g class="fade" style="${dl}"><circle class="dot" cx="${X(i+1)}" cy="${Y(v)}" r="4.5" style="fill:var(--accent)"/><text class="lab" x="${X(i+1)-8}" y="${Y(v)-10}" text-anchor="end">${MONTHS[i]} <tspan class="b">${i?'+':''}${ADDED[i]}</tspan></text>
+    <circle class="hit" cx="${X(i+1)}" cy="${Y(v)}" r="14" data-tip="<b>${MONTHS[i]}</b><div class='tr'><span>Added</span><b>${i?'+':''}${ADDED[i]}</b></div><div class='tr'><span>Running total</span><b>${v}</b></div>"/></g>`});
+  s+=`<text class="lab fade" style="--d:1.8s" x="${X(4)+10}" y="${Y(17)+4}"><tspan class="b">17</tspan> total</text>`;
+  el.innerHTML=s+'</svg>';
+};
+
+R.bars=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;
+  const mx=CATS[0].h;
+  el.innerHTML='<div class="bars">'+CATS.map((c,i)=>`<details class="bar-d"><summary class="bar"><span class="lbl"><span class="chev"></span>${c.n} <span class="cnt">${c.builds.length}</span></span><span class="track"><span class="fill" style="width:${(c.h/mx*100).toFixed(1)}%;--d:${i*0.08}s"></span></span><span class="v">${fmtH(c.h)}</span></summary>
+  <ul class="builds">${c.builds.map(b=>`<li><span>${b[0]}</span><span class="bt">${fmtH(b[1])}</span></li>`).join('')}</ul></details>`).join('')+'</div>';
+};
+
+R.bullet=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;
+  const ic={ok:'✓',warn:'!',bad:'×'};
+  el.innerHTML='<div class="bul">'+KPIS.map((k,i)=>`<div class="bul-r"><div class="bul-n">${k.n}<small>${k.pace}</small></div>
+   <div class="bul-t" data-tip="<b>${k.n}</b><div class='tr'><span>Actual</span><b>${k.a}${k.unit}</b></div><div class='tr'><span>Target</span><b>${k.t}${k.unit}</b></div>" role="img" aria-label="${k.n}: ${k.a}${k.unit} against a target of ${k.t}${k.unit}"><span class="bul-a" style="width:${k.a/k.max*100}%;--d:${i*0.1}s"></span><span class="bul-k" style="left:${k.t/k.max*100}%"></span></div>
+   <div class="bul-v">${k.a}${k.unit}<small>of ${k.t}${k.unit}</small></div>
+   <span class="st" data-s="${k.s}"><span class="ic" aria-hidden="true">${ic[k.s]}</span>${k.sl}</span></div>`).join('')+'</div>';
+};
+
+R.line=el=>{
+  const w=el.clientWidth,h=250,m={l:34,r:58,t:16,b:30},max=16;
+  const X=i=>m.l+(w-m.l-m.r)*i/(WEEKS.length-1),Y=v=>m.t+(h-m.t-m.b)*(1-v/max);
+  const ser=[['t1','Tier 1','--c1'],['t2','Tier 2','--c3']];
+  let s=svgOpen(w,h,'New roles per week over 8 weeks. Tier 1 rose from 3 to 11, Tier 2 from 6 to 14.')+yGrid(m,w,Y,[0,4,8,12,16]);
+  s+=WEEKS.map((wk,i)=>`<text class="ax" x="${X(i)}" y="${h-8}" text-anchor="middle">${wk}</text>`).join('');
+  ser.forEach(([k,n,c],j)=>{const d='M'+ROLES[k].map((v,i)=>`${X(i)},${Y(v)}`).join('L');const lv=ROLES[k].at(-1);
+    s+=`<path class="draw" pathLength="1" d="${d}" style="fill:none;stroke:var(${c});stroke-width:2;stroke-linejoin:round;stroke-linecap:round"/>
+    <g class="fade" style="--d:1.6s"><circle class="dot" cx="${X(7)}" cy="${Y(lv)}" r="4.5" style="fill:var(${c})"/><text class="lab" x="${X(7)+10}" y="${Y(lv)+4}">${n} <tspan class="b">${lv}</tspan></text></g>`});
+  s+=`<line class="cross" id="xh" x1="0" x2="0" y1="${m.t}" y2="${h-m.b}" visibility="hidden"/><g id="xd"></g><rect class="hit" id="xr" x="${m.l}" y="${m.t}" width="${w-m.l-m.r}" height="${h-m.t-m.b}"/>`;
+  el.innerHTML=s+'</svg>';
+  const r=el.querySelector('#xr'),xh=el.querySelector('#xh'),xd=el.querySelector('#xd');
+  r.addEventListener('pointermove',e=>{const bx=el.querySelector('svg').getBoundingClientRect();const i=Math.max(0,Math.min(7,Math.round((e.clientX-bx.left-m.l)/((w-m.l-m.r)/7))));
+    xh.setAttribute('x1',X(i));xh.setAttribute('x2',X(i));xh.setAttribute('visibility','visible');
+    xd.innerHTML=ser.map(([k,,c])=>`<circle class="dot" cx="${X(i)}" cy="${Y(ROLES[k][i])}" r="5" style="fill:var(${c})"/>`).join('');
+    showTip(`<b>${WEEKS[i]}</b>`+ser.map(([k,n,c])=>`<div class='tr'><span><i style='--c:var(${c})'></i>${n}</span><b>${ROLES[k][i]}</b></div>`).join(''),e.clientX,e.clientY)});
+  r.addEventListener('pointerleave',()=>{xh.setAttribute('visibility','hidden');xd.innerHTML='';hideTip()});
+};
+
+R.stack=el=>{
+  const w=el.clientWidth,h=250,m={l:34,r:12,t:22,b:30},max=12,bw=24,gap=2;
+  const band=(w-m.l-m.r)/MONTHS.length,X=i=>m.l+band*i+band/2,Y=v=>m.t+(h-m.t-m.b)*(1-v/max),H=v=>(h-m.t-m.b)*v/max;
+  let s=svgOpen(w,h,'Builds by month: '+MONTHS.map((mo,i)=>`${mo} ${PLATFORM.cc[i]} Claude Code and ${PLATFORM.gpt[i]} ChatGPT`).join('; '))+yGrid(m,w,Y,[0,4,8,12]);
+  MONTHS.forEach((mo,i)=>{const cc=PLATFORM.cc[i],g=PLATFORM.gpt[i],x=X(i)-bw/2,base=Y(0);let y=base;const segs=[[g,'--grey','ChatGPT'],[cc,'--accent','Claude Code']].filter(z=>z[0]>0);
+    s+=`<g class="col" style="--d:${i*0.12}s">`;
+    segs.forEach(([v,c,n],k)=>{const yy=y-H(v);const hgt=k>0?H(v)-gap:H(v);const ytop=yy;const last=k===segs.length-1;
+      const r=last?Math.min(4,hgt):0;
+      const d=`M${x},${ytop+hgt}V${ytop+r}Q${x},${ytop} ${x+r},${ytop}H${x+bw-r}Q${x+bw},${ytop} ${x+bw},${ytop+r}V${ytop+hgt}Z`;
+      s+=`<path d="${d}" style="fill:var(${c})"/>`;y=yy;});
+    s+=`</g><text class="lab fade" style="--d:${0.6+i*0.12}s" x="${X(i)}" y="${Y(cc+g)-8}" text-anchor="middle"><tspan class="b">${cc+g}</tspan></text>`;
+    s+=`<rect class="hit" x="${X(i)-band/2+4}" y="${m.t}" width="${band-8}" height="${h-m.t-m.b}" data-tip="<b>${mo}</b><div class='tr'><span><i style='--c:var(--accent)'></i>Claude Code</span><b>${cc}</b></div><div class='tr'><span><i style='--c:var(--grey)'></i>ChatGPT</span><b>${g}</b></div><div class='tr'><span>Total</span><b>${cc+g}</b></div>"/>`;
+    s+=`<text class="ax" x="${X(i)}" y="${h-8}" text-anchor="middle">${mo}</text>`});
+  el.innerHTML=s+'</svg>';
+};
+
+R.heat=el=>{
+  const w=el.clientWidth,lab=38,top=4,bot=22,gap=2,cols=WEEKS.length,rows=DAYS.length;
+  const cw=Math.min(44,(w-lab)/cols),ch=Math.min(26,cw*0.72),h=top+rows*ch+bot;
+  const mx=Math.max(...HEAT.flat()),bins=[15,35,55,78,100];
+  let s=svgOpen(w,h,'Skill runs by day of week over 8 weeks.');
+  HEAT.forEach((row,r)=>{s+=`<text class="ax" x="${lab-8}" y="${top+r*ch+ch/2+4}" text-anchor="end">${DAYS[r]}</text>`;
+    row.forEach((v,c)=>{const p=bins[Math.min(4,Math.floor(v/(mx+1)*5))];
+      s+=`<rect x="${lab+c*cw+gap/2}" y="${top+r*ch+gap/2}" width="${cw-gap}" height="${ch-gap}" rx="3" style="fill:color-mix(in oklab,var(--accent) ${p}%,var(--surface))" data-tip="<b>${DAYS[r]}, ${WEEKS[c]}</b><div class='tr'><span>Runs</span><b>${v}</b></div>"/>`})});
+  s+=WEEKS.map((wk,c)=>`<text class="ax" x="${lab+c*cw+cw/2}" y="${h-6}" text-anchor="middle">${wk}</text>`).join('');
+  el.innerHTML=s+'</svg>';
+};
+
+R.div=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;const mx=50;
+  el.innerHTML='<div class="div">'+VAR.map((v,i)=>{const pct=Math.abs(v.v)/mx*50,pos=v.v>=0;
+    return `<div class="div-r"><span>${v.n}</span><div class="div-t" data-tip="<b>${v.n}</b><div class='tr'><span>${pos?'Ahead of':'Behind'} target</span><b>${minus(v.v)}%</b></div>" role="img" aria-label="${v.n}: ${pos?'ahead of':'behind'} target by ${Math.abs(v.v)}%">
+     <span class="div-b ${pos?'p':'n'}" style="width:${pct}%;--d:${i*0.08}s"></span><span class="div-l" style="${pos?`left:calc(${50+pct}% + 6px)`:`right:calc(${50+pct}% + 6px)`}">${minus(v.v)}%</span></div></div>`}).join('')
+   +'<div class="div-ax"><span></span><div><span>−50%</span><span>0</span><span>+50%</span></div></div></div>';
+};
+
+/* Barbell on two vertical axes: one axis per period on the same scale; the two biggest movers keep colour, name and change */
+R.barbell=el=>{
+  const w=el.clientWidth,narrow=w<520,xa=narrow?Math.max(86,w*.3):w*.32,xb=w-xa,top=34,bot=14,H=narrow?280:300,hi=Math.ceil(Math.max(...BARB.flatMap(b=>[b.a,b.b]))/10)*10,Y=v=>top+(H-top-bot)*(1-v/hi);
+  const key=[...BARB].sort((x,y)=>Math.abs(y.b-y.a)-Math.abs(x.b-x.a)).slice(0,2).map(b=>b.n);
+  let s=svgOpen(w,H,'Share of skill runs by category: '+BARB.map(b=>`${b.n} ${b.a.toFixed(0)}% to ${b.b.toFixed(0)}%`).join(', '));
+  for(let t=0;t<=hi;t+=10)s+=`<line x1="${xa}" x2="${xb}" y1="${Y(t)}" y2="${Y(t)}" style="stroke:var(--line);stroke-dasharray:2 4"/><text class="ax" x="${xa-10}" y="${Y(t)+4}" text-anchor="end">${t}%</text><text class="ax" x="${xb+10}" y="${Y(t)+4}">${t}%</text>`;
+  [[xa,'W1 to W4'],[xb,'W5 to W8']].forEach(([x,l])=>{s+=`<line x1="${x}" x2="${x}" y1="${Y(hi)}" y2="${Y(0)}" style="stroke:var(--muted);stroke-width:1.5"/><text x="${x}" y="14" text-anchor="middle" style="fill:var(--fg);font:500 12px var(--font-mono)">${l}</text>`});
+  const labs=[[],[]];
+  [...BARB].sort((x,y)=>key.includes(x.n)-key.includes(y.n)).forEach((b,i)=>{const k=key.includes(b.n),c=`var(${b.c})`,r=k?7:4.5,d=b.b-b.a,ch=(d>0?'+':'−')+Math.abs(d).toFixed(1)+' points';
+    s+=`<g class="fade" style="--d:${(i*.1).toFixed(2)}s;opacity:${k?1:.45}" data-tip="<b>${b.n}</b><div class='tr'><span>W1 to W4</span><b>${b.a.toFixed(1)}%</b></div><div class='tr'><span>W5 to W8</span><b>${b.b.toFixed(1)}%</b></div><div class='tr'><span>Change</span><b>${ch}</b></div>">`+
+      `<line x1="${xa}" x2="${xb}" y1="${Y(b.a)}" y2="${Y(b.b)}" style="stroke:transparent;stroke-width:16"/><line x1="${xa}" x2="${xb}" y1="${Y(b.a)}" y2="${Y(b.b)}" style="stroke:${c};stroke-width:${k?5:3};stroke-linecap:round;opacity:.6"/>`+
+      `<circle cx="${xa}" cy="${Y(b.a)}" r="${r}" style="fill:var(--surface);stroke:${c};stroke-width:${k?2.5:1.5}"/><circle cx="${xb}" cy="${Y(b.b)}" r="${r}" style="fill:${c};stroke:var(--surface);stroke-width:1"/></g>`;
+    labs[0].push({y:Y(b.a),t:b.a.toFixed(0)+'%',c,k});labs[1].push({y:Y(b.b),t:(k?b.n+' ':'')+b.b.toFixed(0)+'%',c,k,sub:k?ch:''})});
+  labs.forEach((L,j)=>{L.sort((x,y)=>x.y-y.y);for(let i=1;i<L.length;i++){const g=L[i-1].sub?50:14,short=g-(L[i].y-L[i-1].y);if(short>0){if(L[i-1].sub){L[i-1].y-=short/2;L[i].y+=short/2}else L[i].y+=short}}
+    L.forEach(l=>{const x=j?xb+(narrow?40:46):xa-(narrow?40:46);if(l.sub)s+=`<text class="fade ax" style="--d:.6s;fill:${l.c}" x="${x}" y="${l.y+18}">${l.sub}</text>`;
+      s+=`<text class="fade" style="--d:.6s;fill:${l.k?l.c:'var(--muted)'};font:${l.k?600:400} ${l.k?13:11}px var(--font-mono)" x="${x}" y="${l.y+4}" text-anchor="${j?'start':'end'}">${l.t}</text>`})});
+  el.innerHTML=s+'</svg>';
+  document.getElementById('lg-barbell').innerHTML=BARB.map(b=>`<span style="opacity:${key.includes(b.n)?1:.55}"><i style="--c:var(${b.c});border-radius:50%"></i>${b.n}</span>`).join('')+
+    `<span><i style="--c:transparent;border:2px solid var(--muted);border-radius:50%"></i>W1 to W4</span><span><i style="--c:var(--muted);border-radius:50%"></i>W5 to W8</span>`;
+};
+
+R.mix=el=>{
+  const w=el.clientWidth,h=56,bh=24,gap=2;let x=0,s=svgOpen(w,h,'Share of build time: '+CATS.map(c=>`${c.n} ${Math.round(c.h/totalH*100)}%`).join(', '));
+  s+=`<g class="col" style="transform-origin:left;animation-name:grow">`;
+  CATS.forEach((c,i)=>{const cw=(w)*c.h/totalH,ww=cw-(i<CATS.length-1?gap:0);
+    const first=i===0,last=i===CATS.length-1,r=4;
+    s+=`<rect x="${x}" y="8" width="${Math.max(0,ww)}" height="${bh}" rx="${first||last?r:0}" style="fill:var(--c${i+1})" data-tip="<b>${c.n}</b><div class='tr'><span>Build time</span><b>${fmtH(c.h)}</b></div><div class='tr'><span>Share</span><b>${Math.round(c.h/totalH*100)}%</b></div>"/>`;
+    x+=cw});
+  /* square the inner corners of the first and last segments */
+  const fw=w*CATS[0].h/totalH-gap;s+=`<rect x="${fw-4}" y="8" width="4" height="${bh}" style="fill:var(--c1)"/>`;
+  const lw=w*CATS.at(-1).h/totalH;s+=`<rect x="${w-lw}" y="8" width="4" height="${bh}" style="fill:var(--c${CATS.length})"/>`;
+  s+='</g>';
+  el.innerHTML=s+'</svg>';
+  document.getElementById('lg-mix').innerHTML=CATS.map((c,i)=>`<span><i style="--c:var(--c${i+1})"></i>${c.n} <b class="num" style="color:var(--fg);font-weight:500">${Math.round(c.h/totalH*100)}%</b></span>`).join('');
+};
+
+R.ring=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;
+  const ic={ok:'✓',warn:'!',bad:'×'},S=120,c=S/2,r=46;
+  el.innerHTML='<div class="rings">'+RINGS.map((k,i)=>{
+    const a=(k.t/100)*2*Math.PI-Math.PI/2,tick=k.t<100?`<line x1="${c+(r-9)*Math.cos(a)}" y1="${c+(r-9)*Math.sin(a)}" x2="${c+(r+9)*Math.cos(a)}" y2="${c+(r+9)*Math.sin(a)}" style="stroke:var(--fg);stroke-width:2"/>`:'';
+    return `<div class="ring" data-tip="<b>${k.n}</b><div class='tr'><span>Progress</span><b>${k.v}%</b></div><div class='tr'><span>Target</span><b>${k.t}%</b></div>" tabindex="0">
+    <svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" role="img" aria-label="${k.n}: ${k.v}%, ${k.sub}, ${k.sl}">
+     <circle cx="${c}" cy="${c}" r="${r}" style="fill:none;stroke:var(--line);stroke-width:10"/>
+     <circle class="ringarc" cx="${c}" cy="${c}" r="${r}" pathLength="100" transform="rotate(-90 ${c} ${c})" style="fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round;stroke-dasharray:${k.v} 100;--len:${k.v};--d:${i*0.15}s"/>
+     ${tick}<text x="${c}" y="${c+8}" text-anchor="middle" class="ring-n">${k.v}%</text></svg>
+    <div class="ring-l">${k.n}<small>${k.sub}</small></div>
+    <span class="st" data-s="${k.s}"><span class="ic" aria-hidden="true">${ic[k.s]}</span>${k.sl}</span></div>`}).join('')+'</div>';
+};
+
+R.nest=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;
+  const S=110,c=S/2,ro=44,ri=31;
+  el.innerHTML='<div class="nest">'+NEST.map((d,i)=>{
+    const tot=d[3]||100,b=d[1]/tot*100,a=d[2]/tot*100;
+    return `<div class="nst" tabindex="0" data-tip="<b>${d[0]}</b><div class='tr'><span>Before</span><b>${d[3]?d[1]:'100%'}</b></div><div class='tr'><span>After</span><b>${d[3]?d[2]:d[2]+'%'}</b></div>${d[3]?`<div class='tr'><span>Out of</span><b>${d[3]}</b></div>`:''}">
+    <svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" role="img" aria-label="${d[0]}: ${d[4]}, ${d[5]}">
+     <circle cx="${c}" cy="${c}" r="${ro}" style="fill:none;stroke:var(--line);stroke-width:10"/>
+     <circle class="ringarc" cx="${c}" cy="${c}" r="${ro}" pathLength="100" transform="rotate(-90 ${c} ${c})" style="fill:none;stroke:var(--grey);stroke-width:10;stroke-dasharray:${b.toFixed(1)} 100;--len:${b.toFixed(1)};--d:${i*0.15}s"/>
+     <circle cx="${c}" cy="${c}" r="${ri}" style="fill:none;stroke:var(--line);stroke-width:10"/>
+     <circle class="ringarc" cx="${c}" cy="${c}" r="${ri}" pathLength="100" transform="rotate(-90 ${c} ${c})" style="fill:none;stroke:var(--accent);stroke-width:10;stroke-dasharray:${a.toFixed(1)} 100;--len:${a.toFixed(1)};--d:${i*0.15+0.3}s"/></svg>
+    <div class="nst-n">${d[4]}</div><div class="nst-l">${d[0]}<small>${d[5]}</small></div></div>`}).join('')+'</div>';
+};
+
+R.multi=el=>{
+  const max=16;
+  if(!el.firstChild)el.innerHTML='<div class="multi">'+MULTI.map((m,i)=>`<div class="mini-c"><div class="mini-h"><span>${m.n}</span><b class="num">${m.v.at(-1)}</b></div><div class="mini-s" data-i="${i}"></div></div>`).join('')+'</div>';
+  el.querySelectorAll('.mini-s').forEach(box=>{const m=MULTI[box.dataset.i],w=box.clientWidth,h=56,p=5;
+    const X=i=>p+(w-2*p)*i/(m.v.length-1),Y=v=>p+(h-2*p)*(1-v/max);
+    const d='M'+m.v.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('L');
+    box.innerHTML=`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${m.n}: ${m.v.join(', ')} runs a week">
+     <line class="grid-l" x1="0" x2="${w}" y1="${Y(0)}" y2="${Y(0)}"/>
+     <path class="fade" style="--d:.9s;fill:var(--accent);fill-opacity:.1" d="${d}L${X(m.v.length-1)},${Y(0)}L${X(0)},${Y(0)}Z"/>
+     <path class="draw" pathLength="1" d="${d}" style="fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round"/>
+     <circle class="dot fade" style="--d:1.4s;fill:var(--accent)" cx="${X(m.v.length-1)}" cy="${Y(m.v.at(-1))}" r="4"/>
+     ${m.v.map((v,i)=>`<rect class="hit" x="${X(i)-(w-2*p)/(m.v.length-1)/2}" y="0" width="${(w-2*p)/(m.v.length-1)}" height="${h}" data-tip="<b>${m.n}, ${WEEKS[i]}</b><div class='tr'><span>Runs</span><b>${v}</b></div>"/>`).join('')}</svg>`});
+};
+
+R.bubble=el=>{
+  const w=el.clientWidth,h=280,m={l:40,r:16,t:22,b:42},xm=4.5,ym=60;
+  const X=v=>m.l+(w-m.l-m.r)*v/xm,Y=v=>m.t+(h-m.t-m.b)*(1-v/ym),Rr=v=>3+Math.sqrt(v)*5;
+  let s=svgOpen(w,h,'Bubble chart of 17 builds: build time against runs, sized by run time. Most used: Speed report, Daily Job Scanner, Morning brief.')+yGrid(m,w,Y,[0,15,30,45,60]);
+  s+=[0,1,2,3,4].map(t=>`<text class="ax" x="${X(t)}" y="${h-m.b+16}" text-anchor="middle">${t}h</text>`).join('');
+  s+=`<text class="ax" x="${(m.l+w-m.r)/2}" y="${h-4}" text-anchor="middle">Build time</text><text class="ax" x="${m.l-8}" y="${m.t-10}" text-anchor="end">Runs</text>`;
+  const top=[...BUB].sort((a,b)=>b[3]-a[3]).slice(0,3).map(b=>b[0]);
+  [...BUB].sort((a,b)=>b[4]-a[4]).forEach(b=>{const cx=X(b[2]),cy=Y(b[3]),r=Rr(b[4]);
+    s+=`<g class="fade" style="--d:${(b[2]/xm*1.2).toFixed(2)}s"><circle cx="${cx}" cy="${cy}" r="${r}" style="fill:var(--accent);fill-opacity:.55;stroke:var(--surface);stroke-width:2" data-tip="<b>${b[0]}</b><div class='tr'><span>Build time</span><b>${fmtH(b[2])}</b></div><div class='tr'><span>Runs</span><b>${b[3]}</b></div><div class='tr'><span>Run time</span><b>${fmtH(b[4])}</b></div>"/></g>`});
+  top.forEach(n=>{const b=BUB.find(x=>x[0]===n),cx=X(b[2]),cy=Y(b[3]),r=Rr(b[4]),left=cx>w*0.6;
+    s+=`<text class="lab fade" style="--d:1.4s;paint-order:stroke;stroke:var(--surface);stroke-width:3px" x="${left?cx-r-6:cx+r+6}" y="${cy+4}" text-anchor="${left?'end':'start'}">${b[0]} <tspan class="b">${b[3]}</tspan></text>`});
+  el.innerHTML=s+'</svg>';
+};
+
+function arc(cx,cy,r0,r1,a0,a1){const p=(r,a)=>`${(cx+r*Math.cos(a)).toFixed(2)},${(cy+r*Math.sin(a)).toFixed(2)}`,lg=a1-a0>Math.PI?1:0;
+  return `M${p(r1,a0)}A${r1},${r1} 0 ${lg} 1 ${p(r1,a1)}L${p(r0,a1)}A${r0},${r0} 0 ${lg} 0 ${p(r0,a0)}Z`}
+R.sun=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;
+  const S=300,c=S/2;let a=-Math.PI/2,s=svgOpen(S,S,'Sunburst of build time: '+CATS.map(k=>`${k.n} ${fmtH(k.h)}`).join(', '));
+  CATS.forEach((k,i)=>{const a1=a+2*Math.PI*k.h/totalH,col=`var(--c${i+1})`;
+    s+=`<g class="fade" style="--d:${i*0.15}s"><path d="${arc(c,c,58,98,a,a1)}" style="fill:${col};stroke:var(--surface);stroke-width:2" data-tip="<b>${k.n}</b><div class='tr'><span>Build time</span><b>${fmtH(k.h)}</b></div><div class='tr'><span>Share</span><b>${Math.round(k.h/totalH*100)}%</b></div><div class='tr'><span>Builds</span><b>${k.builds.length}</b></div>"/>`;
+    let b0=a;k.builds.forEach(b=>{const b1=b0+2*Math.PI*b[1]/totalH;
+      s+=`<path d="${arc(c,c,100,140,b0,b1)}" style="fill:color-mix(in oklab,${col} 55%,var(--surface));stroke:var(--surface);stroke-width:2" data-tip="<b>${b[0]}</b><div class='tr'><span>${k.n}</span><b>${fmtH(b[1])}</b></div>"/>`;b0=b1});
+    s+='</g>';a=a1});
+  s+=`<text x="${c}" y="${c-2}" text-anchor="middle" class="ring-n" style="font-size:20px">${fmtH(totalH)}</text><text x="${c}" y="${c+18}" text-anchor="middle" class="ax">build time</text>`;
+  el.innerHTML='<div class="sun">'+s+'</svg></div>';
+  document.getElementById('lg-sun').innerHTML=CATS.map((k,i)=>`<span><i style="--c:var(--c${i+1})"></i>${k.n} <b class="num" style="color:var(--fg);font-weight:500">${Math.round(k.h/totalH*100)}%</b></span>`).join('')+'<span><i style="--c:color-mix(in oklab,var(--c1) 55%,var(--surface))"></i>Outer ring: builds</span>';
+};
+
+R.sankey=el=>{
+  const w=Math.min(el.clientWidth,1000),h=300,nw=10,narrow=w<640,ml=narrow?96:120,mr=narrow?84:110;
+  const cols=[['Claude Code','ChatGPT'],CATS.map(k=>k.n),['Running','Issues']];
+  const colour={'Claude Code':'var(--accent)','ChatGPT':'var(--grey)','Running':'var(--s-ok)','Issues':'var(--s-bad)'};CATS.forEach((k,i)=>colour[k.n]=`var(--c${i+1})`);
+  const icon={'Running':'✓ ','Issues':'× '};
+  const val={};SKL.forEach(([f,t,v])=>{val[f]=val[f]||{i:0,o:0};val[t]=val[t]||{i:0,o:0};val[f].o+=v;val[t].i+=v});
+  const N={},total=17,minPad=8,k=Math.min(...cols.map(c=>(h-(c.length-1)*minPad)/total));
+  cols.forEach((c,ci)=>{const pad=c.length>1?(h-total*k)/(c.length-1):0;let y=0;const x=ml+(w-ml-mr-nw)*ci/2;
+    c.forEach(n=>{const v=Math.max(val[n].i,val[n].o);N[n]={x,y,h:v*k,v,ci,oo:0,io:0};y+=v*k+pad})});
+  const L=SKL.map(([f,t,v])=>({f,t,v})).sort((a,b)=>N[a.t].y-N[b.t].y);
+  let s=svgOpen(w,h+4,'Sankey: '+SKL.map(l=>`${l[0]} to ${l[1]} ${l[2]}`).join(', '));
+  L.forEach(l=>{l.sy=N[l.f].y+N[l.f].oo;N[l.f].oo+=l.v*k});
+  [...L].sort((a,b)=>N[a.f].y-N[b.f].y).forEach(l=>{l.ty=N[l.t].y+N[l.t].io;N[l.t].io+=l.v*k});
+  L.forEach((l,i)=>{const x0=N[l.f].x+nw,x1=N[l.t].x,xm=(x0+x1)/2,wv=l.v*k;
+    s+=`<path class="sk-l fade" style="--d:${0.3+N[l.f].ci*0.5}s;fill:${colour[N[l.f].ci===1?l.f:l.t]}" d="M${x0},${l.sy}C${xm},${l.sy} ${xm},${l.ty} ${x1},${l.ty}L${x1},${l.ty+wv}C${xm},${l.ty+wv} ${xm},${l.sy+wv} ${x0},${l.sy+wv}Z" data-tip="<b>${l.f} to ${l.t}</b><div class='tr'><span>Builds</span><b>${l.v}</b></div>"/>`});
+  Object.entries(N).forEach(([n,d])=>{const ty=d.y+d.h/2+4,lab=`${icon[n]||''}${n} <tspan class="b">${d.v}</tspan>`;
+    s+=`<rect class="fade" style="--d:${d.ci*0.5}s;fill:${colour[n]}" x="${d.x}" y="${d.y}" width="${nw}" height="${Math.max(2,d.h)}" rx="2" data-tip="<b>${n}</b><div class='tr'><span>Builds</span><b>${d.v}</b></div>"/>`;
+    const halo='paint-order:stroke;stroke:var(--surface);stroke-width:3px';
+    if(d.ci===0)s+=`<text class="lab" x="${d.x-6}" y="${ty}" text-anchor="end">${lab}</text>`;
+    else if(d.ci===2)s+=`<text class="lab" x="${d.x+nw+6}" y="${ty}">${lab}</text>`;
+    else if(!narrow)s+=`<text class="lab fade" style="--d:.8s;${halo}" x="${d.x+nw+6}" y="${ty}">${lab}</text>`});
+  el.innerHTML='<div class="sk">'+s+'</svg></div>';
+  document.getElementById('lg-sankey').innerHTML=CATS.map((k,i)=>`<span><i style="--c:var(--c${i+1})"></i>${k.n}</span>`).join('');
+};
+
+/* ---------- Experimental renderers ---------- */
+const arcStroke=(c,r,a0,a1)=>{const p=a=>`${(c+r*Math.cos(a)).toFixed(2)},${(c+r*Math.sin(a)).toFixed(2)}`;return `M${p(a0)}A${r},${r} 0 ${a1-a0>Math.PI?1:0} 1 ${p(a1)}`};
+R.radial=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;
+  const S=360,c=S/2,R0=S/2-12,ri=R0*0.3,n=RADIAL.length,band=(R0-ri)/n,sw=band-5,min=Math.min(...RADIAL.map(r=>r[1]));
+  let s=`<svg viewBox="0 0 ${S} ${S}" width="100%" style="max-width:${S}px" role="img" aria-label="${esc('Radial bars: '+RADIAL.map(r=>`${r[0]} ${r[1]}%`).join(', '))}">`;
+  RADIAL.forEach(([nm,v],i)=>{const r=R0-band*i-band/2,a0=-Math.PI/2,a1=a0+1.5*Math.PI*v/100,col=v===min?'var(--neg)':'var(--accent)';
+    s+=`<path d="${arcStroke(c,r,a0,a0+1.5*Math.PI)}" style="fill:none;stroke:var(--line);stroke-width:${sw};stroke-linecap:round"/>`;
+    s+=`<path class="draw" pathLength="1" style="--d:${i*0.1}s;animation-delay:${i*0.1}s;fill:none;stroke:${col};stroke-width:${sw};stroke-linecap:round" d="${arcStroke(c,r,a0,a1)}" data-tip="<b>${nm}</b><div class='tr'><span>Progress</span><b>${v}%</b></div>"/>`;
+    s+=`<text class="lab" x="${c-10}" y="${c-r+4}" text-anchor="end" style="font-size:11.5px">${nm} <tspan class="b">${v}%</tspan></text>`});
+  el.innerHTML='<div class="sun">'+s+'</svg></div>';
+};
+
+R.swarm=el=>drawSwarm(el,SWARM);
+R.swarm2=el=>drawSwarm(el,SWARM_LOOSE);
+function drawSwarm(el,SW){
+  if(el.dataset.done)return;el.dataset.done=1;
+  let s=`<svg viewBox="0 0 400 400" width="100%" style="max-width:380px" role="img" aria-label="Dot swarm of ${SW.length} roles: ${SW.filter(p=>p.t1).length} Tier 1 and ${SW.filter(p=>!p.t1).length} Tier 2.">`;
+  SW.forEach(p=>{const d=Math.hypot(p.x-200,p.y-200)/190;
+    s+=`<circle class="fade" style="--d:${(d*1.1).toFixed(2)}s;fill:${p.t1?'var(--accent)':'color-mix(in oklab,var(--accent) 45%,var(--surface))'}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r.toFixed(1)}" data-tip="<b>Role ${p.id}</b><div class='tr'><span>Tier</span><b>${p.t1?1:2}</b></div><div class='tr'><span>Match</span><b>${p.m}%</b></div>"/>`});
+  el.innerHTML='<div class="sun">'+s+'</svg></div>';
+}
+
+R.map=el=>{
+  const w=Math.min(el.clientWidth,1000),narrow=w<560,ml=w*(narrow?0.24:0.2),mr=w*(narrow?0.27:0.22),lon0=112.5,lon1=153.5,lat0=10.5,lat1=43.5,top=8;
+  const k=(w-ml-mr)/(lon1-lon0),X=lon=>ml+(lon-lon0)*k,Y=lat=>top+(lat-lat0)*k,mapH=(lat1-lat0)*k+top*2;
+  const bh=narrow?42:54,gap=8,maxShare=Math.max(...CITIES.map(c=>c[3]));
+  let s='';
+  s+='<g class="fade">';for(const lat in AU_LAND)for(const [a,b] of AU_LAND[lat])for(let lon=a;lon<=b;lon++)s+=`<circle cx="${X(lon).toFixed(1)}" cy="${Y(+lat).toFixed(1)}" r="${Math.max(1.2,k*0.3).toFixed(1)}" style="fill:var(--muted);fill-opacity:.35"/>`;s+='</g>';
+  const place=side=>{const list=CITIES.filter(c=>c[4]===side).map(c=>({c,y:Y(c[2])-bh/2})).sort((p,q)=>p.y-q.y);let last=-Infinity;list.forEach(p=>{p.y=Math.max(p.y,last+gap,2);last=p.y+bh});return list};
+  let bottom=mapH;
+  [['r',place('r')],['l',place('l')]].forEach(([side,list])=>list.forEach((p,i)=>{
+    const [nm,lon,lat,v]=p.c,cx=X(lon),cy=Y(lat),top1=v===maxShare,bw=(side==='r'?mr:ml)-14,bx=side==='r'?w-mr+10:4,ex=side==='r'?bx:bx+bw;
+    bottom=Math.max(bottom,p.y+bh+4);
+    const fill=top1?'var(--accent)':'var(--line)',ink=top1?'var(--bg)':'var(--fg)',sub=top1?'var(--bg)':'var(--muted)',big=Math.min(narrow?18:26,bw/3.2);
+    const tip=`data-tip="<b>${nm}</b><div class='tr'><span>Share of roles</span><b>${v}%</b></div>"`;
+    s+=`<g class="fade" style="--d:${0.5+i*0.2}s">
+     <path d="M${cx},${cy}L${(cx+ex)/2},${p.y+bh/2}L${ex},${p.y+bh/2}" style="fill:none;stroke:var(--muted);stroke-width:1"/>
+     <circle cx="${cx}" cy="${cy}" r="${Math.max(3,k*0.38)}" style="fill:${top1?'var(--accent)':'var(--grey)'};stroke:var(--surface);stroke-width:2" ${tip}/>
+     <rect x="${bx}" y="${p.y}" width="${bw}" height="${bh}" rx="8" style="fill:${fill}" ${tip}/>
+     <text x="${bx+bw/2}" y="${p.y+(narrow?14:17)}" text-anchor="middle" style="fill:${sub};font-family:var(--font-mono);font-size:${narrow?9:10}px;text-transform:uppercase;letter-spacing:.06em;pointer-events:none">${nm}</text>
+     <text x="${bx+bw/2}" y="${p.y+bh-(narrow?8:11)}" text-anchor="middle" style="fill:${ink};font-family:var(--font-body);font-weight:600;font-size:${big}px;font-variant-numeric:tabular-nums;pointer-events:none">${v}%</text></g>`}));
+  el.innerHTML=`<div class="sk">${svgOpen(w,Math.ceil(bottom),'Dot map of Australia. Share of roles: '+CITIES.map(c=>`${c[0]} ${c[3]}%`).join(', '))}${s}</svg></div>`;
+};
+
+R.cluster=el=>{
+  const w=Math.min(el.clientWidth,900),placed=[];
+  const items=TOOL_GROUPS.flatMap((g,gi)=>TOOLS.filter(t=>t[1]===g).sort((a,b)=>b[2]-a[2]).map(t=>({n:t[0],g,gi,v:t[2],r:8+Math.sqrt(t[2])*10})));
+  let anchor=null,prev=-1;
+  for(const it of items){if(it.gi!==prev){anchor=null;prev=it.gi}const [ax,ay]=anchor||[0,0];
+    for(let t=0;t<20000;t++){const ang=t*0.5,d=t*0.3,x=ax+d*Math.cos(ang),y=ay+d*Math.sin(ang)*0.6;
+      if(placed.every(p=>Math.hypot(p.x-x,p.y-y)>=p.r+it.r+3)){placed.push({...it,x,y});if(!anchor)anchor=[x,y];break}}}
+  const x0=Math.min(...placed.map(p=>p.x-p.r))-2,x1=Math.max(...placed.map(p=>p.x+p.r))+2,y0=Math.min(...placed.map(p=>p.y-p.r))-2,y1=Math.max(...placed.map(p=>p.y+p.r))+2;
+  const sc=w/(x1-x0),h=(y1-y0)*sc,fs=11/sc;
+  let s=`<svg width="${w}" height="${h.toFixed(0)}" viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" role="img" aria-label="${esc('Bubble cluster of 24 skills and tools in 6 groups. Largest: Claude Code skill 10 builds, HTML and CSS 8, GitHub Pages 7.')}">`;
+  placed.forEach(p=>{const col=`var(--c${p.gi+1})`,fits=p.n.length*fs*0.56<2*p.r-8/sc;
+    s+=`<g class="fade" style="--d:${(p.gi*0.25).toFixed(2)}s"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r.toFixed(1)}" style="fill:${col};fill-opacity:.35;stroke:${col};stroke-width:${(1/sc).toFixed(2)}" data-tip="<b>${p.n}</b><div class='tr'><span>${p.g}</span><b>${p.v} builds</b></div>"/>`;
+    if(fits)s+=`<text x="${p.x.toFixed(1)}" y="${(p.y+fs*0.35).toFixed(1)}" text-anchor="middle" style="fill:var(--fg);font-family:var(--font-body);font-weight:500;font-size:${fs.toFixed(2)}px;pointer-events:none">${p.n}</text>`;
+    s+='</g>'});
+  el.innerHTML='<div class="sk">'+s+'</svg></div>';
+  document.getElementById('lg-cluster').innerHTML=TOOL_GROUPS.map((g,i)=>`<span><i style="--c:var(--c${i+1});border-radius:50%"></i>${g} <b class="num" style="color:var(--fg);font-weight:500">${TOOLS.filter(t=>t[1]===g).length}</b></span>`).join('');
+};
+
+/* ---------- v1.2 renderers: root cause, target tracking and comparison sets, hexagonal swarm ---------- */
+/* Axis label wrapped to fit its band: about 6.6px per character at 11px */
+const wrap2=(t,x,y,band)=>{const max=Math.max(5,Math.floor((band-6)/6.6)),lines=[];t.split(' ').forEach(wd=>{const l=lines.at(-1);if(l&&(l+' '+wd).length<=max)lines[lines.length-1]=l+' '+wd;else lines.push(wd)});return `<text class="ax" x="${x}" y="${y}" text-anchor="middle">${lines.map((l,i)=>`<tspan x="${x}" dy="${i?12:0}">${l}</tspan>`).join('')}</text>`};
+R.bridge=el=>{
+  const w=el.clientWidth,narrow=w<480,h=narrow?272:260,m={l:30,r:8,t:24,b:narrow?52:40},max=10,n=BRIDGE.length;
+  const band=(w-m.l-m.r)/n,bw=Math.min(44,band*0.6),X=i=>m.l+band*i+band/2,Y=v=>m.t+(h-m.t-m.b)*(1-v/max);
+  let s=svgOpen(w,h,'Bridge: first interviews fell from 8 to 5. Fewer applications −2, more Tier 2 roles −2, better match +1.')+yGrid(m,w,Y,[0,5,10]);
+  let run=0;
+  BRIDGE.forEach(([nm,v,tot,short],i)=>{const y0=tot?0:run,y1=tot?v:run+v;run=y1;const top=Y(Math.max(y0,y1)),hh=Math.abs(Y(y0)-Y(y1));
+    const col=tot?'var(--fg)':v<0?'var(--neg)':'var(--pos)';
+    s+=`<g class="col" style="--d:${i*0.14}s"><rect x="${X(i)-bw/2}" y="${top}" width="${bw}" height="${hh}" rx="3" style="fill:${col}"/></g>`;
+    if(i<n-1)s+=`<line x1="${X(i)+bw/2}" x2="${X(i+1)-bw/2}" y1="${Y(run)}" y2="${Y(run)}" style="stroke:var(--muted);stroke-dasharray:3 3"/>`;
+    s+=`<text class="lab fade" style="--d:${0.5+i*0.14}s" x="${X(i)}" y="${top-7}" text-anchor="middle"><tspan class="b">${tot?v:minus(v)}</tspan></text>`;
+    s+=wrap2(narrow&&short?short:nm,X(i),h-m.b+16,band);
+    s+=`<rect class="hit" x="${X(i)-band/2+2}" y="${m.t}" width="${band-4}" height="${h-m.t-m.b}" data-tip="<b>${nm}</b><div class='tr'><span>${tot?'Total':'Effect'}</span><b>${tot?v:minus(v)}</b></div><div class='tr'><span>Running total</span><b>${run}</b></div>"/>`});
+  el.innerHTML=s+'</svg>';
+};
+R.pareto=el=>{
+  const w=el.clientWidth,h=260,m={l:30,r:34,t:22,b:40},max=20,n=PARETO.length,tot=PARETO.reduce((a,p)=>a+p[2],0);
+  const band=(w-m.l-m.r)/n,bw=Math.min(28,band*0.6),X=i=>m.l+band*i+band/2,Y=v=>m.t+(h-m.t-m.b)*(1-v/max),P=pc=>m.t+(h-m.t-m.b)*(1-pc/100);
+  let s=svgOpen(w,h,'Pareto of reasons for no reply. Role closed 18, missing skill 12, salary 7: together 79% of 47.')+yGrid(m,w,Y,[0,10,20]);
+  s+=`<line x1="${m.l}" x2="${w-m.r}" y1="${P(80)}" y2="${P(80)}" style="stroke:var(--muted);stroke-dasharray:4 4"/><text class="ax" x="${w-m.r+4}" y="${P(80)+4}">80%</text>`;
+  let c=0;const pts=[];
+  PARETO.forEach(([full,short,v],i)=>{c+=v;const pc=c/tot*100;pts.push([X(i),P(pc),pc]);
+    const col=pc<=80?'var(--accent)':'color-mix(in oklab,var(--accent) 35%,var(--surface))';
+    s+=`<g class="col" style="--d:${i*0.1}s"><rect x="${X(i)-bw/2}" y="${Y(v)}" width="${bw}" height="${Y(0)-Y(v)}" rx="3" style="fill:${col}"/></g>`;
+    s+=wrap2(short,X(i),h-m.b+16,band);
+    s+=`<rect class="hit" x="${X(i)-band/2+2}" y="${m.t}" width="${band-4}" height="${h-m.t-m.b}" data-tip="<b>${full}</b><div class='tr'><span>Count</span><b>${v}</b></div><div class='tr'><span>Running total</span><b>${Math.round(pc)}%</b></div>"/>`});
+  s+=`<path class="draw" pathLength="1" d="M${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')}" style="fill:none;stroke:var(--fg);stroke-width:2;stroke-linejoin:round"/>`;
+  pts.forEach((p,i)=>{s+=`<g class="fade" style="--d:${1+i*0.1}s"><circle class="dot" cx="${p[0]}" cy="${p[1]}" r="4" style="fill:var(--fg)"/>${i===2||i===n-1?`<text class="lab" x="${p[0]}" y="${p[1]-10}" text-anchor="middle"><tspan class="b">${Math.round(p[2])}%</tspan></text>`:''}</g>`});
+  el.innerHTML=s+'</svg>';
+};
+R.tree=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;
+  const ic={ok:'✓',warn:'!',bad:'×'},word={ok:'On track',warn:'Behind',bad:'Off track'},rows={0:['1 / 5'],1:['1 / 3','3 / 5'],2:['1 / 2','2 / 3','3 / 4','4 / 5']},k={0:0,1:0,2:0};
+  el.innerHTML='<div class="dt">'+TREE.map(([n,v,t,st,note,lv,hl])=>{const gr=rows[lv][k[lv]++];
+    return `<div class="dt-n l${lv}${hl?' hl':''}${lv===0?' top':''}" data-s="${st}" style="grid-column:${lv+1};grid-row:${gr}" tabindex="0" data-tip="<b>${n}</b><div class='tr'><span>Actual</span><b>${v}</b></div><div class='tr'><span>Target</span><b>${t}</b></div>"><span class="nm">${n}</span><b>${v}</b><small>Target ${t} · ${ic[st]} ${word[st]}</small><small>${note}</small></div>`}).join('')+'</div>';
+};
+R.bands=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;
+  el.innerHTML='<div class="bnd">'+BANDS.map((b,i)=>{const p=v=>(v/b.max*100).toFixed(1)+'%',t=b.t;
+    const z=[[0,t*0.6,22],[t*0.6,t*0.9,40],[t*0.9,b.max,60]].map(([a,c,pc])=>`<span class="z" style="left:${p(a)};width:calc(${p(c)} - ${p(a)});background:color-mix(in oklab,var(--grey) ${pc}%,var(--surface))"></span>`).join('');
+    return `<div class="bnd-r"><div class="bul-n">${b.n}<small>Target ${b.t}${b.unit}</small></div>
+    <div class="bnd-t" role="img" aria-label="${b.n}: ${b.a}${b.unit} against a target of ${b.t}${b.unit}" data-tip="<b>${b.n}</b><div class='tr'><span>Actual</span><b>${b.a}${b.unit}</b></div><div class='tr'><span>Target</span><b>${b.t}${b.unit}</b></div>">${z}<span class="bnd-a" style="width:${p(b.a)};--d:${i*0.1}s"></span><span class="bnd-k" style="left:${p(b.t)}"></span></div>
+    <div class="bul-v">${b.a}${b.unit}<small>of ${b.t}${b.unit}</small></div></div>`}).join('')+'</div>';
+};
+R.path=el=>{
+  const w=el.clientWidth,h=250,m={l:30,r:92,t:16,b:30},max=25,n=APPS.length;
+  const X=i=>m.l+(w-m.l-m.r)*i/n,Y=v=>m.t+(h-m.t-m.b)*(1-v/max);
+  let s=svgOpen(w,h,'Applications, running total 18 after 8 weeks against a path of 25.')+yGrid(m,w,Y,[0,5,10,15,20,25]);
+  s+=['Start',...WEEKS].map((wk,i)=>i%2===0||i===n?`<text class="ax" x="${X(i)}" y="${h-8}" text-anchor="middle">${wk}</text>`:'').join('');
+  const d='M'+[0,...APPS_CUM].map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('L');
+  s+=`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(n)}" y2="${Y(APPS_GOAL)}" style="stroke:var(--muted);stroke-width:2;stroke-dasharray:6 5"/>`;
+  s+=`<path class="fade" style="--d:1.2s;fill:var(--accent);fill-opacity:.1" d="${d}V${Y(0)}H${X(0)}Z"/><path class="draw" pathLength="1" d="${d}" style="fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round"/>`;
+  const last=APPS_CUM.at(-1);
+  s+=`<g class="fade" style="--d:1.6s"><line x1="${X(n)+8}" x2="${X(n)+8}" y1="${Y(APPS_GOAL)}" y2="${Y(last)}" style="stroke:var(--fg)"/><circle class="dot" cx="${X(n)}" cy="${Y(last)}" r="4.5" style="fill:var(--accent)"/>
+   <text class="lab" x="${X(n)+14}" y="${Y(APPS_GOAL)+4}">Path <tspan class="b">25</tspan></text><text class="lab" x="${X(n)+14}" y="${(Y(APPS_GOAL)+Y(last))/2+4}"><tspan class="b">7</tspan> behind</text><text class="lab" x="${X(n)+14}" y="${Y(last)+4}">Actual <tspan class="b">18</tspan></text></g>`;
+  APPS_CUM.forEach((v,i)=>s+=`<circle class="hit" cx="${X(i+1)}" cy="${Y(v)}" r="12" data-tip="<b>${WEEKS[i]}</b><div class='tr'><span>Running total</span><b>${v}</b></div><div class='tr'><span>Path needed</span><b>${(APPS_GOAL*(i+1)/n).toFixed(1)}</b></div>"/>`);
+  el.innerHTML=s+'</svg>';
+};
+R.control=el=>{
+  const w=el.clientWidth,h=250,m={l:30,r:92,t:22,b:30},n=SCAN_MIN.length,lo=0,hi=24;
+  const mean=SCAN_MIN.reduce((a,b)=>a+b,0)/n,sd=Math.sqrt(SCAN_MIN.reduce((a,b)=>a+(b-mean)**2,0)/(n-1)),ucl=mean+3*sd,lcl=Math.max(0,mean-3*sd);
+  const X=i=>m.l+(w-m.l-m.r)*i/(n-1),Y=v=>m.t+(h-m.t-m.b)*(1-(v-lo)/(hi-lo));
+  let s=svgOpen(w,h,`Control chart of job scan minutes over 20 days. Average ${mean.toFixed(1)}, upper limit ${ucl.toFixed(1)}. Day 14 at 20 minutes is outside the limit.`)+yGrid(m,w,Y,[0,8,16,24]);
+  [[ucl,'Upper',1],[mean,'Average',0],[lcl,'Lower',1]].forEach(([v,l,dash])=>s+=`<line x1="${m.l}" x2="${w-m.r}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--muted);${dash?'stroke-dasharray:4 4':''}"/><text class="ax" x="${w-m.r+6}" y="${Y(v)+4}">${l} ${v.toFixed(1)}</text>`);
+  [1,6,11,16,20].forEach(d=>s+=`<text class="ax" x="${X(d-1)}" y="${h-8}" text-anchor="middle">Day ${d}</text>`);
+  s+=`<path class="draw" pathLength="1" d="M${SCAN_MIN.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join('L')}" style="fill:none;stroke:var(--grey);stroke-width:2;stroke-linejoin:round"/>`;
+  SCAN_MIN.forEach((v,i)=>{const out=v>ucl||v<lcl;
+    s+=`<g class="fade" style="--d:${1.2+i*0.03}s"><circle class="dot" cx="${X(i)}" cy="${Y(v)}" r="${out?5.5:3.5}" style="fill:${out?'var(--accent)':'var(--grey)'}"/>${out?`<text class="lab" x="${X(i)}" y="${Y(v)-11}" text-anchor="middle">Day ${i+1}: <tspan class="b">${v} min</tspan></text>`:''}
+    <circle class="hit" cx="${X(i)}" cy="${Y(v)}" r="10" data-tip="<b>Day ${i+1}</b><div class='tr'><span>Minutes</span><b>${v}</b></div><div class='tr'><span>Reading</span><b>${out?'Signal':'Noise'}</b></div>"/></g>`});
+  el.innerHTML=s+'</svg>';
+};
+function spread(items,minGap,lo,hi){items.sort((a,b)=>a.y-b.y);for(let k=0;k<40;k++){let moved=false;for(let i=1;i<items.length;i++){const d=items[i].y-items[i-1].y;if(d<minGap){const p=(minGap-d)/2;items[i-1].y-=p;items[i].y+=p;moved=true}}items.forEach(it=>it.y=Math.max(lo,Math.min(hi,it.y)));if(!moved)break}return items}
+R.slope=el=>{
+  const w=el.clientWidth,h=250,narrow=w<480,m={l:narrow?48:130,r:narrow?116:130,t:30,b:16},lo=10,hi=34;
+  const xa=m.l,xb=w-m.r,Y=v=>m.t+(h-m.t-m.b)*(1-(v-lo)/(hi-lo));
+  const movers=[...SLOPE].sort((a,b)=>Math.abs(b[2]-b[1])-Math.abs(a[2]-a[1])).slice(0,2).map(r=>r[0]);
+  const col=n=>movers.includes(n)?(movers[0]===n?'var(--c1)':'var(--c2)'):'var(--grey)';
+  let s=svgOpen(w,h,'Slope chart of response rate by job site. SEEK rose from 22% to 30%, LinkedIn fell from 25% to 18%.');
+  s+=`<text class="ax" x="${xa}" y="14" text-anchor="middle">Last month</text><text class="ax" x="${xb}" y="14" text-anchor="middle">This month</text>`;
+  s+=`<line x1="${xa}" x2="${xa}" y1="${m.t-6}" y2="${h-m.b}" class="grid-l"/><line x1="${xb}" x2="${xb}" y1="${m.t-6}" y2="${h-m.b}" class="grid-l"/>`;
+  [...SLOPE].sort((a,b)=>movers.includes(a[0])-movers.includes(b[0])).forEach(([n,a,b],i)=>{const hl=movers.includes(n);
+    s+=`<g class="fade" style="--d:${i*0.12}s"><line x1="${xa}" y1="${Y(a)}" x2="${xb}" y2="${Y(b)}" style="stroke:${col(n)};stroke-width:${hl?2.5:1.5};opacity:${hl?1:.7}"/><circle class="dot" cx="${xa}" cy="${Y(a)}" r="4.5" style="fill:${col(n)}"/><circle class="dot" cx="${xb}" cy="${Y(b)}" r="4.5" style="fill:${col(n)}"/>
+    <line x1="${xa}" y1="${Y(a)}" x2="${xb}" y2="${Y(b)}" style="stroke:transparent;stroke-width:14" data-tip="<b>${n}</b><div class='tr'><span>Last month</span><b>${a}%</b></div><div class='tr'><span>This month</span><b>${b}%</b></div><div class='tr'><span>Change</span><b>${minus(b-a)} points</b></div>"/></g>`});
+  const L=spread(SLOPE.map(r=>({n:r[0],v:r[1],y:Y(r[1])})),15,m.t,h-m.b),Rt=spread(SLOPE.map(r=>({n:r[0],v:r[2],y:Y(r[2])})),15,m.t,h-m.b);
+  L.forEach(t=>s+=`<text class="lab fade" style="--d:.8s" x="${xa-10}" y="${t.y+4}" text-anchor="end">${narrow?'':t.n+' '}<tspan class="${movers.includes(t.n)?'b':''}">${t.v}%</tspan></text>`);
+  Rt.forEach(t=>s+=`<text class="lab fade" style="--d:.8s" x="${xb+10}" y="${t.y+4}"><tspan class="${movers.includes(t.n)?'b':''}">${t.v}%</tspan> ${t.n}</text>`);
+  el.innerHTML=s+'</svg>';
+};
+R.lolli=el=>{
+  const w=el.clientWidth,rh=32,m={l:118,r:44,t:26,b:8},h=m.t+LOLLI.length*rh+m.b,target=70,lo=0,hi=100;
+  const X=v=>m.l+(w-m.l-m.r)*(v-lo)/(hi-lo),hlN='LinkedIn';
+  let s=svgOpen(w,h,'Lollipop ranking of match score by job site. Greenhouse 82% highest, Employment Hero 55% lowest. LinkedIn 71% highlighted.');
+  s+=`<line x1="${X(target)}" x2="${X(target)}" y1="${m.t-8}" y2="${h-m.b}" style="stroke:var(--muted);stroke-dasharray:4 4"/><text class="ax" x="${X(target)}" y="${m.t-12}" text-anchor="middle">Target 70%</text>`;
+  LOLLI.forEach(([n,v],i)=>{const y=m.t+i*rh+rh/2,hl=n===hlN,c=hl?'var(--accent)':'var(--grey)';
+    s+=`<text class="lab" x="${m.l-10}" y="${y+4}" text-anchor="end" style="${hl?'font-weight:600':''}">${n}</text>
+    <g class="fade" style="--d:${i*0.08}s"><line x1="${X(0)}" x2="${X(v)}" y1="${y}" y2="${y}" style="stroke:${c};stroke-width:1.5"/><circle class="dot" cx="${X(v)}" cy="${y}" r="5.5" style="fill:${c}"/><text class="lab" x="${X(v)+10}" y="${y+4}"><tspan class="${hl?'b':''}">${v}%</tspan></text></g>
+    <rect class="hit" x="0" y="${y-rh/2}" width="${w}" height="${rh}" data-tip="<b>${n}</b><div class='tr'><span>Match score</span><b>${v}%</b></div><div class='tr'><span>Against target</span><b>${minus(v-target)} points</b></div>"/>`});
+  el.innerHTML=s+'</svg>';
+};
+R.bees=el=>{
+  const w=el.clientWidth,r=w<420?2.6:3.2,m={l:58,r:16,t:8,b:28},lo=40,hi=100,X=v=>m.l+(w-m.l-m.r)*(v-lo)/(hi-lo),gap=r*2.1;
+  const groups=[[true,'Tier 1','var(--accent)'],[false,'Tier 2','color-mix(in oklab,var(--accent) 45%,var(--surface))']].map(([t,n,c])=>{
+    const pts=BEES.filter(p=>p.t1===t).map(p=>({x:X(p.m),m:p.m,id:p.id})).sort((a,b)=>a.x-b.x),placed=[];
+    for(const p of pts){const near=placed.filter(q=>Math.abs(q.x-p.x)<gap);for(let k=0;;k++){const off=(k%2?1:-1)*Math.ceil(k/2)*gap*0.5;if(near.every(q=>Math.hypot(q.x-p.x,q.y-off)>=gap)){placed.push({...p,y:off});break}}}
+    const ms=pts.map(p=>p.m).sort((a,b)=>a-b),med=ms[Math.floor(ms.length/2)];
+    return {n,c,placed,half:Math.max(...placed.map(p=>Math.abs(p.y)))+r+14,med}});
+  let y0=m.t,s='';
+  groups.forEach((g,gi)=>{const cy=y0+g.half;
+    s+=`<text class="lab" x="${m.l-10}" y="${cy+4}" text-anchor="end">${g.n}</text>`;
+    s+=`<g class="fade" style="--d:${gi*0.3}s">`+g.placed.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${(cy+p.y).toFixed(1)}" r="${r}" style="fill:${g.c}" data-tip="<b>Role ${p.id}</b><div class='tr'><span>${g.n}</span><b>${p.m}% match</b></div>"/>`).join('')+'</g>';
+    s+=`<line x1="${X(g.med)}" x2="${X(g.med)}" y1="${cy-g.half+12}" y2="${cy+g.half-4}" style="stroke:var(--fg);stroke-width:1.5"/><text class="ax" x="${X(g.med)+6}" y="${cy-g.half+10}">Median ${g.med}%</text>`;
+    const top=g.placed.reduce((a,p)=>p.m>a.m?p:a);s+=`<text class="ax" x="${X(top.m)}" y="${cy+top.y-r-5}" text-anchor="middle">Top ${top.m}%</text>`;
+    y0=cy+g.half+6});
+  const h=y0+m.b;
+  s+=`<line class="grid-l" x1="${m.l}" x2="${w-m.r}" y1="${h-m.b+2}" y2="${h-m.b+2}"/>`+[40,60,80,100].map(v=>`<text class="ax" x="${X(v)}" y="${h-8}" text-anchor="middle">${v}%</text>`).join('');
+  el.innerHTML=svgOpen(w,h,'Beeswarm of match scores for '+BEES.length+' roles, Tier 1 and Tier 2.')+s+'</svg>';
+};
+R.hex=el=>{
+  if(el.dataset.done)return;el.dataset.done=1;
+  const most=Math.max(...HEXRUNS.map(c=>c.reduce((a,b)=>a+b,0))),span=Math.floor(Math.sqrt(most/3.6))+3,spots=[];
+  for(let j=-span;j<=span;j++)for(let i=-span;i<=span;i++)spots.push([i+(Math.abs(j)%2?0.5:0),j*0.866]);
+  spots.sort((p,q)=>(Math.round((p[0]**2+p[1]**2)*1e6)-Math.round((q[0]**2+q[1]**2)*1e6))||(Math.atan2(p[1],p[0])-Math.atan2(q[1],q[0])));
+  const edge=Math.hypot(...spots[most-1])+0.6,ang=p=>(Math.atan2(p[0],-p[1])+2*Math.PI)%(2*Math.PI);
+  el.innerHTML='<div class="hx">'+HEXRUNS.map((c,ri)=>{const order=c.map((v,i)=>i).sort((a,b)=>c[b]-c[a]),tot=c.reduce((a,b)=>a+b,0),lab=ri?'Weeks 5 to 8':'Weeks 1 to 4';
+    const mine=spots.slice(0,c[order[0]]).concat(spots.slice(c[order[0]],tot).sort((p,q)=>ang(p)-ang(q)));let at=0,svg='';
+    order.forEach((k,j)=>{const n=c[k];if(!n)return;svg+=`<g class="fade" style="--d:${j*0.15}s;fill:var(--c${k+1})" data-tip="<b>${MULTI[k].n}</b><div class='tr'><span>${lab}</span><b>${n} runs</b></div>">`+mine.slice(at,at+n).map(([x,y])=>`<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r=".42"/>`).join('')+'</g>';at+=n});
+    return `<figure><svg viewBox="${(-edge).toFixed(2)} ${(-edge).toFixed(2)} ${(2*edge).toFixed(2)} ${(2*edge).toFixed(2)}" role="img" aria-label="${lab}: ${tot} skill runs">${svg}</svg><figcaption><b>${lab}</b>${tot} runs</figcaption></figure>`}).join('')+'</div>';
+};
+
+/* ---------- Render, resize, play on first view, click to replay ---------- */
+const charts=[...document.querySelectorAll('.chart')];
+charts.forEach(el=>R[el.dataset.c](el));
+let rw=null;const ro=new ResizeObserver(()=>{clearTimeout(rw);rw=setTimeout(()=>charts.forEach(el=>{if(!el.dataset.done){const was=el.classList.contains('play');R[el.dataset.c](el)}}),120)});
+charts.forEach(el=>ro.observe(el));
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function play(el){el.classList.remove('play');void el.offsetWidth;el.classList.add('play')}
+if('IntersectionObserver' in window&&!reduce){
+  charts.forEach(el=>el.style.visibility='hidden');
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.style.visibility='';play(e.target);io.unobserve(e.target)}}),{threshold:.35});
+  charts.forEach(el=>io.observe(el));
+}
+charts.forEach(el=>el.addEventListener('click',e=>{if(!reduce&&el.classList.contains('replay')&&!e.target.closest('summary'))play(el)}));
+
+/* ---------- Tooltip ---------- */
+const tip=document.getElementById('tip');
+function showTip(html,x,y){tip.innerHTML=html;tip.classList.add('on');const r=tip.getBoundingClientRect();let l=x+14,t=y+14;if(l+r.width>innerWidth-8)l=x-r.width-14;if(t+r.height>innerHeight-8)t=y-r.height-14;tip.style.left=Math.max(8,l)+'px';tip.style.top=Math.max(8,t)+'px'}
+function hideTip(){tip.classList.remove('on')}
+document.addEventListener('pointermove',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(t)showTip(t.dataset.tip,e.clientX,e.clientY);else if(!e.target.closest('#xr'))hideTip()});
+document.addEventListener('focusin',e=>{const t=e.target.closest('[data-tip]');if(t){const b=t.getBoundingClientRect();showTip(t.dataset.tip,b.right,b.top)}});
+document.addEventListener('focusout',hideTip);
+document.querySelectorAll('.bul-t,.div-t,.bnd-t').forEach(n=>n.tabIndex=0);
+
+applyPalette();
+</script>
+<script type="module">
+/**
+ * Validate a categorical chart palette against the computable data-viz checks.
+ *
+ * Design-system-agnostic: feed it ANY palette's hex values plus the mode and
+ * surface, and it computes - never eyeballs - the five checks that can be
+ * measured from color alone:
+ *
+ *   2. Lightness band   - OKLCH L within the mode's band
+ *   3. Chroma floor     - OKLCH C >= floor (below it a hue reads as gray)
+ *   4. CVD separation   - OKLab Delta E (×100) between slots under simulated protan/deutan
+ *                         (tritan reported); adjacent pairs by default, pairs:"all"
+ *                         for scatter/bubble/maps
+ *   4b. Normal-vision floor - worst OKLab Delta E (×100) on the active pairlist
+ *       (adjacent by default; all pairs with --pairs all) under unsimulated vision;
+ *                         full-color readers must be able to tell neighbors apart too
+ *   5. Contrast vs surface - WCAG ratio of each mark against the chart surface
+ *
+ * Checks 1 (fixed hue order) and 6 (values are from the documented palette) are
+ * structural rules the skill enforces, not measurable from hexes alone.
+ *
+ * Usage (node):
+ *   node validate_palette.js "#2a78d6,#eb6834,#1baf7a,#eda100,#e87ba4,#008300,#6250d6,#e34948" --mode light
+ *   node validate_palette.js "#256abf,#199e70,..." --mode dark --surface "#1a1a19"
+ *   node validate_palette.js "#86b6ef,#5598e7,#256abf,#104281" --ordinal
+ *
+ * Usage (browser - as a module script):
+ *   <body data-palette="#2a78d6,#eb6834,..." data-mode="light">
+ *   -> logs a console.table of the report and console.warn on any FAIL.
+ *
+ * Exit code 0 unless a check hard-FAILs; 1 on any FAIL. WARN bands do not fail:
+ * adjacent CVD in the 6-8 floor band, and contrast in the sub-3:1 relief band,
+ * are reported as WARNs and still exit 0 (each is legal only with mandatory
+ * secondary encoding: direct labels, gaps, or texture). The normal-vision floor
+ * is a hard gate: a worst unsimulated pair below 15 FAILs the run.
+ */
+
+// -- thresholds ----------------------------------------------------------------
+const BAND = { light: [0.43, 0.77], dark: [0.48, 0.67] }; // OKLCH L
+const CHROMA_FLOOR = 0.10; // OKLCH C
+// Delta E is Euclidean distance in OKLab ×100. The CVD thresholds are calibrated to
+// the Machado-Oliveira-Fernandes (2009) severity-1.0 simulation below - the sim
+// model is part of the standard, not an implementation detail (swapping in e.g.
+// Viénot-1999 moves borderline pairs and would require recalibrating these).
+const CVD_TARGET = 8.0, CVD_FLOOR = 6.0; // OKLab Delta E×100, min(protan, deutan), adjacent pairs
+const NORMAL_FLOOR = 15.0; // OKLab Delta E×100, worst pair on the active pairlist, unsimulated vision
+const CONTRAST_MIN = 3.0; // WCAG vs surface
+const DEFAULT_SURFACE = { light: "#fcfcfb", dark: "#1a1a19" };
+const ORDINAL_MIN_DL = 0.06; // min OKLCH delta L between adjacent steps
+const ORDINAL_LIGHT_FLOOR = 2.0; // lightest step: WCAG contrast vs surface
+
+// Machado, Oliveira & Fernandes (2009) CVD transforms at severity 1.0 (linear RGB).
+const MACHADO = {
+  protan: [[0.152286, 1.052583, -0.204868],
+           [0.114503, 0.786281, 0.099216],
+           [-0.003882, -0.048116, 1.051998]],
+  deutan: [[0.367322, 0.860646, -0.227968],
+           [0.280085, 0.672501, 0.047413],
+           [-0.011820, 0.042940, 0.968881]],
+  tritan: [[1.255528, -0.076749, -0.178779],
+           [-0.078411, 0.930809, 0.147602],
+           [0.004733, 0.691367, 0.303900]],
+};
+
+// -- color conversions ----------------------------------------------------------
+const hex2srgb = (h) => { h = h.trim().replace(/^#/, ""); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255); };
+
+// -- input boundary -- EVERY user-supplied color string (palette entries AND
+// the surface, CLI and browser alike) passes these before any math:
+// unguarded, parseInt propagates NaN through every check and the run fails
+// OPEN. Normalization is spelled out rather than engine-native: JS trim()
+// and Python str.strip() differ at the edges (trim() strips U+FEFF;
+// str.strip() strips U+001C-U+001F and U+0085), so the shared set is their
+// intersection - ASCII whitespace plus the Unicode space/separator
+// characters both engines strip, which also covers the NBSP/em-space
+// padding picked up when copy-pasting hex lists from rendered pages. Keep
+// these three definitions in lockstep with the Python twin.
+const WS_RUN = "[ \\t\\n\\v\\f\\r\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]+";
+const stripWs = (v) => v.replace(new RegExp(`^${WS_RUN}|${WS_RUN}$`, "g"), "");
+const splitColors = (raw) => (raw || "").split(",").map(stripWs).filter(Boolean);
+const isHexColor = (v) => /^#?[0-9a-fA-F]{6}$/.test(v);
+const s2lin = (c) => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+const lin2s = (c) => { c = Math.max(0, Math.min(1, c)); return c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055; };
+const lin = (h) => hex2srgb(h).map(s2lin);
+const relLum = (h) => { const [r, g, b] = lin(h); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+export const contrast = (a, b) => { const [hi, lo] = [relLum(a), relLum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+
+function oklabFromLin([r, g, b]) {
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [
+    0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, // L
+    1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, // a
+    0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s, // b
+  ];
+}
+const oklab = (h) => oklabFromLin(lin(h));
+const oklch = (h) => { const [L, a, b] = oklab(h); return [L, Math.hypot(a, b)]; };
+const okhue = (h) => { const [, a, b] = oklab(h); return ((Math.atan2(b, a) * 180 / Math.PI) % 360 + 360) % 360; };
+
+function simulate(h, kind) {
+  const [r, g, b] = lin(h), M = MACHADO[kind];
+  const clamp = (c) => Math.max(0, Math.min(1, c));
+  return [
+    clamp(M[0][0] * r + M[0][1] * g + M[0][2] * b),
+    clamp(M[1][0] * r + M[1][1] * g + M[1][2] * b),
+    clamp(M[2][0] * r + M[2][1] * g + M[2][2] * b),
+  ];
+}
+function deltaE(h1, h2, kind) {
+  // Euclidean distance in OKLab, ×100. No kind -> unsimulated (normal) vision.
+  const a = oklabFromLin(kind ? simulate(h1, kind) : lin(h1));
+  const b = oklabFromLin(kind ? simulate(h2, kind) : lin(h2));
+  return 100 * Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+}
+
+// -- checks ---------------------------------------------------------------------
+export function validate(palette, { mode = "light", surface, pairs = "adjacent" } = {}) {
+  surface ??= DEFAULT_SURFACE[mode];
+  const [lo, hi] = BAND[mode];
+  const report = [];
+  let ok = true;
+
+  // 2. lightness band
+  const offband = palette.filter(c => { const L = oklch(c)[0]; return L < lo || L > hi; })
+    .map(c => [c, +oklch(c)[0].toFixed(3)]);
+  if (offband.length) ok = false;
+  report.push(["Lightness band", !offband.length,
+    offband.length ? `outside band: ${JSON.stringify(offband)}` : `all ${palette.length} inside L ${lo}\u2013${hi}`]);
+
+  // 3. chroma floor
+  const lowc = palette.filter(c => oklch(c)[1] < CHROMA_FLOOR).map(c => [c, +oklch(c)[1].toFixed(3)]);
+  if (lowc.length) ok = false;
+  report.push(["Chroma floor", !lowc.length,
+    lowc.length ? `below floor (reads gray): ${JSON.stringify(lowc)}` : `all ${palette.length} >= ${CHROMA_FLOOR}`]);
+
+  // 4. CVD separation - adjacent for stacks/bars/lines; ALL pairs for scatter/bubble/maps/small-multiples
+  const n = palette.length;
+  const pairlist = pairs === "all"
+    ? Array.from({ length: n }, (_, i) => Array.from({ length: n - i - 1 }, (_, k) => [i, i + 1 + k])).flat()
+    : Array.from({ length: n - 1 }, (_, i) => [i, i + 1]);
+  const label = pairs === "all" ? "all-pairs" : "adjacent";
+  let worst = null;
+  for (const kind of ["protan", "deutan"]) {
+    for (const [i, j] of pairlist) {
+      const d = deltaE(palette[i], palette[j], kind);
+      if (worst === null || d < worst[0]) worst = [d, kind, palette[i], palette[j]];
+    }
+  }
+  const tri = pairlist.length ? Math.min(...pairlist.map(([i, j]) => deltaE(palette[i], palette[j], "tritan"))) : 99;
+  const wd = worst ? worst[0] : 99;
+  const cvdState = wd >= CVD_TARGET ? "pass" : wd >= CVD_FLOOR ? "floor" : "fail";
+  if (cvdState === "fail") ok = false;
+  report.push(["CVD separation", cvdState,
+    worst ? `worst ${label} ${worst[3]}\u2194${worst[2]} \u0394E ${wd.toFixed(1)} (${worst[1]}) · tritan ${tri.toFixed(1)}` : "n/a"]);
+
+  // 4b. Normal-vision floor. The CVD gate protects dichromat readers; this one
+  //     protects everyone else - neighbors must stay easy to tell apart under
+  //     unsimulated vision too. A hard gate: secondary encoding does not
+  //     excuse it, and weak pairs are not masked to keep an existing palette
+  //     validating (this floor forced the first of the July 2026 re-orders
+  //     of the shipped set: same steps, re-ordered, clears 19.6/19.3).
+  let nworst = null;
+  for (const [i, j] of pairlist) {
+    const d = deltaE(palette[i], palette[j]);
+    if (nworst === null || d < nworst[0]) nworst = [d, palette[i], palette[j]];
+  }
+  const nd = nworst ? nworst[0] : 99;
+  const norState = nd >= NORMAL_FLOOR ? "pass" : "fail";
+  if (norState === "fail") ok = false;
+  report.push(["Normal-vision floor", norState,
+    nworst ? `worst ${label} ${nworst[2]}\u2194${nworst[1]} \u0394E ${nd.toFixed(1)} (normal)`
+      + (nd >= NORMAL_FLOOR ? "" : ` \u2014 below ${NORMAL_FLOOR.toFixed(0)}, hard to tell apart even with full color vision`) : "n/a"]);
+
+  // 5. contrast vs surface - sub-3:1 is a documented conditional relax (visible labels / table view), not a hard fail
+  const low = palette.filter(c => contrast(c, surface) < CONTRAST_MIN).map(c => [c, +contrast(c, surface).toFixed(2)]);
+  report.push(["Contrast vs surface", low.length ? "relief" : "pass",
+    low.length ? `below ${CONTRAST_MIN}:1 \u2014 relief required (visible labels or table view): ${JSON.stringify(low)}`
+               : `all ${palette.length} >= ${CONTRAST_MIN}:1`]);
+
+  return { report, ok };
+}
+
+export function validateOrdinal(palette, { mode = "light", surface } = {}) {
+  /* Ordered categories (funnel stages, size tiers, time buckets rendered as
+     discrete marks) take a one-hue ramp, not categorical hues. The categorical
+     checks FAIL a correct ramp by design (it spans the lightness band; light
+     steps drop below the chroma floor). The ordinal checks instead verify the
+     ramp reads *as a ramp*: one hue, monotone lightness with visible gaps
+     between steps, and a lightest step that still clears the surface. */
+  surface ??= DEFAULT_SURFACE[mode];
+  const report = [];
+  let ok = true;
+  const Ls = palette.map(c => oklch(c)[0]);
+
+  // Monotone lightness - sorted by L must match input order (or its reverse).
+  const order = [...Ls.keys()].sort((a, b) => Ls[a] - Ls[b]);
+  const fwd = order.every((v, i) => v === i);
+  const rev = order.every((v, i) => v === Ls.length - 1 - i);
+  const mono = fwd || rev;
+  if (!mono) ok = false;
+  report.push(["Lightness monotone", mono,
+    mono ? "steps read light\u2192dark" : `out of order \u2014 L values ${JSON.stringify(Ls.map(l => +l.toFixed(3)))}`]);
+
+  // Adjacent delta L - each step must be visibly distinct from its neighbour.
+  const gaps = Ls.slice(1).map((l, i) => Math.abs(l - Ls[i]));
+  // Filter on the RAW gap, then round for display - filtering the rounded
+  // value passes raw gaps in [0.0595, 0.06) that the Python twin fails.
+  const thin = gaps.map((g, i) => [palette[i], palette[i + 1], g]).filter(([, , g]) => g < ORDINAL_MIN_DL).map(([a, b, g]) => [a, b, +g.toFixed(3)]);
+  if (thin.length) ok = false;
+  report.push(["Adjacent \u0394L", !thin.length,
+    thin.length ? `steps too close: ${JSON.stringify(thin)}` : `all gaps >= ${ORDINAL_MIN_DL}`]);
+
+  // Lightest step vs surface - the pale end must still read as a mark.
+  const byL = [...palette].sort((a, b) => oklch(a)[0] - oklch(b)[0]);
+  const lightest = mode === "light" ? byL[byL.length - 1] : byL[0];
+  const cr = contrast(lightest, surface);
+  if (cr < ORDINAL_LIGHT_FLOOR) ok = false;
+  report.push(["Light-end contrast", cr >= ORDINAL_LIGHT_FLOOR,
+    `${lightest} at ${cr.toFixed(2)}:1 vs surface` + (cr >= ORDINAL_LIGHT_FLOOR ? "" : ` \u2014 below ${ORDINAL_LIGHT_FLOOR}:1 floor`)]);
+
+  // Single hue - an ordinal ramp is one hue; a hue jump means it's categorical.
+  const hues = palette.map(okhue);
+  let spread = hues.length ? Math.max(...hues) - Math.min(...hues) : 0;
+  if (spread > 180) spread = 360 - spread;
+  const oneHue = spread <= 40;
+  if (!oneHue) ok = false;
+  report.push(["Single hue", oneHue,
+    `hue spread ${spread.toFixed(0)}°` + (oneHue ? "" : " \u2014 >40°, not a one-hue ramp")]);
+
+  return { report, ok };
+}
+
+// -- entrypoints ----------------------------------------------------------------
+const GLYPH = { true: "PASS", false: "FAIL", pass: "PASS", floor: "WARN", fail: "FAIL", relief: "WARN" };
+
+function printReport({ report, ok }, { mode, surface, ordinal, n }) {
+  const kind = ordinal ? "ordinal ramp" : "categorical";
+  console.log(`\nPalette (${mode}, surface ${surface}, ${kind}): ${n} slots`);
+  for (const [name, state, detail] of report) {
+    console.log(`  [${(GLYPH[state] ?? state).padEnd(4)}] ${name.padEnd(22)} ${detail}`);
+  }
+  if (ordinal) {
+    console.log(`\n  \u2192 ${ok ? "ALL CHECKS PASS" : "FAILED \u2014 fix the marked checks"}`
+      + "  (ordinal: one hue, monotone L, visible step gaps, light end clears surface)");
+  } else {
+    console.log(`\n  \u2192 ${ok ? "ALL CHECKS PASS" : "FAILED \u2014 fix the marked checks"}`
+      + "  (CVD in the 6\u20138 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)");
+    console.log("  scope: categorical palettes only. For a lone status/text color check WCAG"
+      + " text contrast; for a sequential ramp, lightness monotonicity.\n");
+  }
+}
+
+// Node CLI
+if (typeof process !== "undefined" && process.argv && process.argv[1] && process.argv[1].endsWith("validate_palette.js")) {
+  const args = process.argv.slice(2);
+  const VALUE_FLAGS = new Set(["--mode", "--surface", "--pairs"]);
+  const CHOICES = { mode: ["light", "dark"], pairs: ["adjacent", "all"] };
+  const opts = {}; let positional = null;
+  for (let i = 0; i < args.length; i++) {
+    let a = args[i], val;
+    const eq = a.indexOf("="); if (eq > 0) { val = a.slice(eq + 1); a = a.slice(0, eq); }
+    if (VALUE_FLAGS.has(a)) { opts[a.slice(2)] = val ?? args[++i]; }
+    else if (a === "--ordinal") { opts.ordinal = true; }
+    else if (a.startsWith("--")) { console.error(`unknown flag: ${a}`); process.exit(2); }
+    else if (positional === null) { positional = a; }
+    else { console.error(`unexpected extra positional: ${a}`); process.exit(2); }
+  }
+  for (const [k, allowed] of Object.entries(CHOICES)) {
+    if (opts[k] != null && !allowed.includes(opts[k])) {
+      console.error(`--${k} must be one of: ${allowed.join(", ")} (got ${JSON.stringify(opts[k])})`); process.exit(2);
+    }
+  }
+  const palette = splitColors(positional);
+  if (!palette.length) { console.error("usage: node validate_palette.js \"#hex,#hex,...\" [--mode light|dark] [--surface #hex] [--pairs adjacent|all] [--ordinal]"); process.exit(2); }
+  const mode = opts.mode || "light";
+  // An empty/whitespace-only surface counts as absent (falls back to the
+  // default), preserving the pre-boundary falsy behavior.
+  const rawSurface = opts.surface != null ? stripWs(opts.surface) : "";
+  const surface = rawSurface || DEFAULT_SURFACE[mode];
+  const badHex = [...palette, surface].filter((c) => !isHexColor(c));
+  if (badHex.length) { console.error(`invalid hex value(s): ${badHex.join(", ")} \u2014 expected #rrggbb`); process.exit(2); }
+  const pairs = opts.pairs || "adjacent";
+  const result = opts.ordinal ? validateOrdinal(palette, { mode, surface }) : validate(palette, { mode, surface, pairs });
+  printReport(result, { mode, surface, ordinal: !!opts.ordinal, n: palette.length });
+  process.exit(result.ok ? 0 : 1);
+}
+
+// Browser auto-run (as a <script type="module">). Fires whenever the page has a
+// data-palette attribute on <body>; omit it to import the module without auto-running.
+if (typeof document !== "undefined") {
+  const b = document.body;
+  if (b?.dataset.palette) {
+    const palette = splitColors(b.dataset.palette);
+    const mode = b.dataset.mode || "light";
+    const pairs = b.dataset.pairs || "adjacent";
+    const rawSurface = b.dataset.surface != null ? stripWs(b.dataset.surface) : "";
+    const surface = rawSurface || DEFAULT_SURFACE[mode];
+    const ordinal = "ordinal" in b.dataset;
+    // Same input boundary as the CLI (stripWs/splitColors/isHexColor), plus
+    // the CLI's enum choices: a bad data-mode otherwise throws at BAND[mode],
+    // and a bad data-pairs silently downgrades to the weaker adjacent check.
+    const badEnum = !["light", "dark"].includes(mode) ? `data-mode ${JSON.stringify(mode)}`
+      : !["adjacent", "all"].includes(pairs) ? `data-pairs ${JSON.stringify(pairs)}` : null;
+    const badHex = [...palette, surface].filter((c) => !isHexColor(c));
+    if (!palette.length || badEnum || badHex.length) {
+      // Module top level - no `return` here; skip validating instead.
+      console.warn(`validate_palette: ${!palette.length ? "empty palette" : badEnum ? `unrecognized ${badEnum}` : `invalid hex value(s): ${badHex.join(", ")} \u2014 expected #rrggbb`} \u2014 not validating`);
+    } else {
+      const result = ordinal ? validateOrdinal(palette, { mode, surface }) : validate(palette, { mode, surface, pairs });
+      console.table(result.report.map(([name, state, detail]) => ({ check: name, result: GLYPH[state] ?? state, detail })));
+      if (!result.ok) console.warn("validate_palette: FAILED \u2014 fix the marked checks");
+    }
+  }
+}
+const GL={true:'✓ Pass',pass:'✓ Pass',false:'✗ Fail',fail:'✗ Fail',floor:'⚠ Floor',relief:'⚠ Needs labels'};
+window.runCheck=(cats,mode,surface,name)=>{
+  const res=validate(cats,{mode,surface});
+  document.getElementById('chk').innerHTML=res.report.map(([n,s,d])=>`<tr><td>${n}</td><td>${GL[s]??s}</td><td>${d.replace(/>=/g,'≥').replace(/[<>&]/g,'').replace(/ — /g,': ')}</td></tr>`).join('');
+  document.getElementById('chk-note').textContent=`${name}, ${mode} mode, all six category colours against the card background. ${res.ok?'Passes: safe for categories.':'Fails: fine for one or two series with labels, not for six categories side by side.'} Checks run live in this page (OKLab colour distance with colourblind simulation).`;
+};
+applyPalette();
+</script>
+</body>
+</html>
